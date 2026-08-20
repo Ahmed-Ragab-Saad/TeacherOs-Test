@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../TeacherOS.Domain/TeacherOS.Domain.csproj" />
+  </ItemGroup>
+</Project>

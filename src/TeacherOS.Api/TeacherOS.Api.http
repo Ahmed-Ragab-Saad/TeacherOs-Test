@@ -1,0 +1,11 @@
+@TeacherOS_HostAddress = https://localhost:7291
+
+GET {{TeacherOS_HostAddress}}/health/live
+Accept: text/plain
+
+###
+
+GET {{TeacherOS_HostAddress}}/health/ready
+Accept: text/plain
+
+###

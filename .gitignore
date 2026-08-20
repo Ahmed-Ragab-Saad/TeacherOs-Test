@@ -1,0 +1,36 @@
+## Build outputs
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+
+## IDE and user state
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Test outputs
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+## Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+secrets.json
+
+## Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+## Logs and local databases
+*.log
+*.mdf
+*.ldf

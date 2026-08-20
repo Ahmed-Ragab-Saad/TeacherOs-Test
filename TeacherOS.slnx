@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="src/TeacherOS.Domain/TeacherOS.Domain.csproj" />
+  <Project Path="src/TeacherOS.Application/TeacherOS.Application.csproj" />
+  <Project Path="src/TeacherOS.Infrastructure/TeacherOS.Infrastructure.csproj" />
+  <Project Path="src/TeacherOS.Api/TeacherOS.Api.csproj" />
+  <Project Path="tests/TeacherOS.Domain.Tests/TeacherOS.Domain.Tests.csproj" />
+  <Project Path="tests/TeacherOS.Application.Tests/TeacherOS.Application.Tests.csproj" />
+  <Project Path="tests/TeacherOS.IntegrationTests/TeacherOS.IntegrationTests.csproj" />
+  <Project Path="tests/TeacherOS.ArchitectureTests/TeacherOS.ArchitectureTests.csproj" />
+</Solution>

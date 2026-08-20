@@ -1,3 +1,7 @@
+using System;
+using TeacherOS.Domain.Common;
+using Xunit;
+
 namespace TeacherOS.Domain.Tests;
 
 public sealed class EntityTests

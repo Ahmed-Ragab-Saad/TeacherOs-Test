@@ -1,3 +1,7 @@
+using System;
+using TeacherOS.Application.Common;
+using Xunit;
+
 namespace TeacherOS.Application.Tests;
 
 public sealed class ResultTests

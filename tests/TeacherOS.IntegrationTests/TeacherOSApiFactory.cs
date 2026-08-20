@@ -1,3 +1,8 @@
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+
 namespace TeacherOS.IntegrationTests;
 
 public sealed class TeacherOSApiFactory : WebApplicationFactory<Program>

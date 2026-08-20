@@ -46,9 +46,19 @@ public sealed class LayerDependencyTests
     [Fact]
     public void Application_does_not_depend_on_entity_framework_core()
     {
-        Assert.DoesNotContain(
-            ApplicationAssembly.GetReferencedAssemblies(),
-            reference => reference.Name?.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal) == true);
+        AssertDoesNotReferenceAssemblyPrefix(ApplicationAssembly, "Microsoft.EntityFrameworkCore");
+    }
+
+    [Fact]
+    public void Domain_does_not_depend_on_aspnet_core_identity()
+    {
+        AssertDoesNotReferenceAssemblyPrefix(DomainAssembly, "Microsoft.AspNetCore.Identity");
+    }
+
+    [Fact]
+    public void Application_does_not_depend_on_aspnet_core_identity()
+    {
+        AssertDoesNotReferenceAssemblyPrefix(ApplicationAssembly, "Microsoft.AspNetCore.Identity");
     }
 
     [Fact]
@@ -67,6 +77,13 @@ public sealed class LayerDependencyTests
                 reference.Name,
                 forbiddenDependency.GetName().Name,
                 StringComparison.Ordinal));
+    }
+
+    private static void AssertDoesNotReferenceAssemblyPrefix(Assembly source, string forbiddenPrefix)
+    {
+        Assert.DoesNotContain(
+            source.GetReferencedAssemblies(),
+            reference => reference.Name?.StartsWith(forbiddenPrefix, StringComparison.Ordinal) == true);
     }
 
     private static void AssertNamespacePrefix(Assembly assembly, string expectedPrefix)

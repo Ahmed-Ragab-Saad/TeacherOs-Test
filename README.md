@@ -1,6 +1,6 @@
 # TeacherOS Backend
 
-TeacherOS is a multi-tenant SaaS platform for teachers and educational centers. This repository currently contains the production-oriented backend foundation only; no student, attendance, finance, messaging, video, subscription, or other product feature is implemented yet.
+TeacherOS is a multi-tenant SaaS platform for teachers and educational centers. This repository currently contains the production-oriented backend and identity/tenancy persistence foundation only; no student, attendance, finance, messaging, video, subscription, or other product feature is implemented yet.
 
 ## Technology
 
@@ -80,6 +80,8 @@ dotnet build TeacherOS.slnx --no-restore
 dotnet test TeacherOS.slnx --no-build
 ```
 
+Every completed backend task must also verify formatting, EF tooling when persistence changes, an actual API startup, liveness and Development OpenAPI responses, readiness against the available infrastructure, and a clean API shutdown. Integration tests do not replace this runtime check.
+
 The API requires `Database:ConnectionString`. Keep it outside tracked settings. For local development, use User Secrets:
 
 ```powershell
@@ -97,9 +99,9 @@ Operational endpoints:
 
 ## Database migrations
 
-The DbContext and migrations assembly are in `TeacherOS.Infrastructure`. The API never calls `EnsureCreated` and does not apply migrations automatically at startup. No migration exists yet because there is no product schema to create.
+The DbContext and migrations assembly are in `TeacherOS.Infrastructure`. ASP.NET Core Identity users and TeacherOS tenancy share this context, while tenant membership remains the explicit user-to-tenant relation. The API never calls `EnsureCreated` and does not apply migrations automatically at startup.
 
-When the first reviewed model is ready:
+Create later migrations with the pinned local EF tool:
 
 ```powershell
 dotnet tool restore

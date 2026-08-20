@@ -1,11 +1,15 @@
 using System;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using TeacherOS.Application.Abstractions.Authentication;
+using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Infrastructure.Configuration;
 using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Persistence;
+using TeacherOS.Infrastructure.Tenancy;
 
 namespace TeacherOS.Infrastructure;
 
@@ -39,8 +43,20 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services
-            .AddIdentityCore<ApplicationUser>()
+            .AddIdentityCore<ApplicationUser>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            })
+            .AddSignInManager()
             .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        services.AddScoped<IIdentityAuthenticator, IdentityAuthenticator>();
+        services.AddScoped<ICurrentSessionReader, CurrentSessionReader>();
+        services.AddScoped<ITenantMembershipResolver, TenantMembershipResolver>();
+        services.AddScoped<IIdentityPrincipalFactory, IdentityPrincipalFactory>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);

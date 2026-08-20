@@ -62,6 +62,41 @@ public sealed class LayerDependencyTests
     }
 
     [Fact]
+    public void Application_does_not_depend_on_aspnet_core()
+    {
+        AssertDoesNotReferenceAssemblyPrefix(ApplicationAssembly, "Microsoft.AspNetCore");
+    }
+
+    [Fact]
+    public void Application_authentication_boundary_contains_no_framework_specific_types()
+    {
+        var sourceDirectory = Path.Combine(FindRepositoryRoot(), "src", "TeacherOS.Application");
+        var forbiddenIdentifiers = new[]
+        {
+            "HttpContext",
+            "ClaimsPrincipal",
+            "UserManager",
+            "SignInManager",
+            "IdentityUser",
+            "IdentityResult",
+        };
+
+        var sourceFiles = Directory.GetFiles(sourceDirectory, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+
+        foreach (var sourceFile in sourceFiles)
+        {
+            var source = File.ReadAllText(sourceFile);
+
+            foreach (var forbiddenIdentifier in forbiddenIdentifiers)
+            {
+                Assert.DoesNotMatch($@"\b{Regex.Escape(forbiddenIdentifier)}\b", source);
+            }
+        }
+    }
+
+    [Fact]
     public void Layer_namespaces_match_their_assemblies()
     {
         AssertNamespacePrefix(DomainAssembly, "TeacherOS.Domain");
@@ -93,5 +128,18 @@ public sealed class LayerDependencyTests
         Assert.All(
             types,
             type => Assert.StartsWith(expectedPrefix, type.Namespace!, StringComparison.Ordinal));
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "TeacherOS.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName
+            ?? throw new DirectoryNotFoundException("Could not locate the repository root.");
     }
 }

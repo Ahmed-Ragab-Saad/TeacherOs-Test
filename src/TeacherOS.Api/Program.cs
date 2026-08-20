@@ -1,5 +1,7 @@
 using TeacherOS.Api;
+using TeacherOS.Api.Authentication;
 using TeacherOS.Api.Observability;
+using TeacherOS.Api.Tenancy;
 using TeacherOS.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +24,14 @@ app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseStatusCodePages();
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseMiddleware<TenantContextMiddleware>();
+app.UseAuthorization();
+app.UseAntiforgery();
+
+app.MapAuthenticationEndpoints();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

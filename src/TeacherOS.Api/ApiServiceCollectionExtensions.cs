@@ -1,6 +1,15 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
+using TeacherOS.Api.Authentication;
 using TeacherOS.Api.Errors;
 using TeacherOS.Api.Observability;
+using TeacherOS.Api.Tenancy;
+using TeacherOS.Application.Abstractions.Authentication;
 using TeacherOS.Application.Abstractions.Observability;
+using TeacherOS.Application.Abstractions.Tenancy;
+using TeacherOS.Application.Authentication;
 
 namespace TeacherOS.Api;
 
@@ -10,6 +19,7 @@ public static class ApiServiceCollectionExtensions
     {
         services.AddRouting(options => options.LowercaseUrls = true);
         services.AddOpenApi();
+        services.AddHttpContextAccessor();
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails(options =>
         {
@@ -35,6 +45,77 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<CorrelationContext>();
         services.AddScoped<ICorrelationContext>(serviceProvider =>
             serviceProvider.GetRequiredService<CorrelationContext>());
+
+        services.AddScoped<ICurrentUser, HttpCurrentUser>();
+        services.AddScoped<TenantContext>();
+        services.AddScoped<ITenantContext>(serviceProvider =>
+            serviceProvider.GetRequiredService<TenantContext>());
+        services.AddScoped<LoginHandler>();
+        services.AddScoped<GetCurrentSessionHandler>();
+
+        services.AddAuthentication(AuthenticationConstants.CookieScheme)
+            .AddCookie(AuthenticationConstants.CookieScheme, options =>
+            {
+                options.Cookie.Name = "__Host-TeacherOS.Auth";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.Path = "/";
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.SlidingExpiration = false;
+                options.Events = new CookieAuthenticationEvents
+                {
+                    OnRedirectToLogin = context => ApiProblemDetails.Create(
+                            StatusCodes.Status401Unauthorized,
+                            "Authentication.Unauthorized",
+                            "Authentication is required.")
+                        .ExecuteAsync(context.HttpContext),
+                    OnRedirectToAccessDenied = context => ApiProblemDetails.Create(
+                            StatusCodes.Status403Forbidden,
+                            "Authorization.Forbidden",
+                            "Access is forbidden.")
+                        .ExecuteAsync(context.HttpContext),
+                    OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync,
+                };
+            });
+
+        services.Configure<SecurityStampValidatorOptions>(options =>
+            options.ValidationInterval = TimeSpan.FromMinutes(5));
+
+        services.AddAuthorization();
+
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-CSRF-TOKEN";
+            options.Cookie.Name = "__Host-TeacherOS.Antiforgery";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.Path = "/";
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        });
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = (context, _) => new ValueTask(
+                ApiProblemDetails.Create(
+                        StatusCodes.Status429TooManyRequests,
+                        "Authentication.RateLimitExceeded",
+                        "Too many login attempts. Try again later.")
+                    .ExecuteAsync(context.HttpContext));
+
+            options.AddPolicy(
+                AuthenticationConstants.LoginRateLimitPolicy,
+                httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 10,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+        });
 
         services
             .AddHealthChecks()

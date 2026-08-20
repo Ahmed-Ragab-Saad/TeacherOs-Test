@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using TeacherOS.Infrastructure.Configuration;
+using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Persistence;
 
 namespace TeacherOS.Infrastructure;
@@ -36,6 +37,10 @@ public static class InfrastructureServiceCollectionExtensions
                     sqlServerOptions.EnableRetryOnFailure();
                 });
         });
+
+        services
+            .AddIdentityCore<ApplicationUser>()
+            .AddEntityFrameworkStores<ApplicationDbContext>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);

@@ -39,6 +39,9 @@ public sealed class ProjectReferenceRulesTests
         Assert.DoesNotContain(
             ReadPackageReferences(repositoryRoot, "TeacherOS.Application"),
             package => package.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            ReadPackageReferences(repositoryRoot, "TeacherOS.Application"),
+            package => package.StartsWith("Microsoft.AspNetCore.Identity", StringComparison.Ordinal));
     }
 
     private static string FindRepositoryRoot()

@@ -20,9 +20,13 @@ public sealed partial class PublicTypeLayoutTests
 
             if (publicTypes.Count == 1)
             {
-                Assert.Equal(
-                    Path.GetFileNameWithoutExtension(sourceFile),
-                    publicTypes[0].Groups["name"].Value);
+                var fileName = Path.GetFileNameWithoutExtension(sourceFile);
+                var publicTypeName = publicTypes[0].Groups["name"].Value;
+
+                Assert.True(
+                    string.Equals(fileName, publicTypeName, StringComparison.Ordinal) ||
+                    IsConventionalEfMigrationFile(sourceFile, fileName, publicTypeName),
+                    $"{sourceFile} does not match its public type {publicTypeName}.");
             }
         }
     }
@@ -70,8 +74,32 @@ public sealed partial class PublicTypeLayoutTests
         throw new DirectoryNotFoundException("Could not locate the TeacherOS repository root.");
     }
 
+    private static bool IsConventionalEfMigrationFile(
+        string sourceFile,
+        string fileName,
+        string publicTypeName)
+    {
+        var migrationsPath = string.Join(
+            Path.DirectorySeparatorChar,
+            string.Empty,
+            "TeacherOS.Infrastructure",
+            "Persistence",
+            "Migrations",
+            string.Empty);
+        var match = EfMigrationFileNameRegex().Match(fileName);
+
+        return sourceFile.Contains(migrationsPath, StringComparison.OrdinalIgnoreCase) &&
+            match.Success &&
+            string.Equals(match.Groups["name"].Value, publicTypeName, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex(
         @"^\s*public\s+(?:(?:abstract|sealed|static|partial)\s+)*(?:class|interface|record(?:\s+(?:class|struct))?|enum)\s+(?<name>[A-Za-z_]\w*)",
         RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex PublicTypeRegex();
+
+    [GeneratedRegex(
+        @"^\d{14}_(?<name>[A-Za-z_]\w*)$",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex EfMigrationFileNameRegex();
 }

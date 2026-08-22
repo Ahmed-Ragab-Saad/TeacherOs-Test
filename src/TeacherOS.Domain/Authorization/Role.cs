@@ -10,7 +10,7 @@ public sealed class Role : Entity<Guid>
 {
     public const int MaxNameLength = 100;
 
-    public Role(Guid id, Guid tenantId, string name, IEnumerable<string> permissionCodes)
+    public Role(Guid id, Guid tenantId, string name, IReadOnlyCollection<string> permissionCodes)
         : base(ValidateId(id))
     {
         TenantId = ValidateTenantId(tenantId);
@@ -63,7 +63,7 @@ public sealed class Role : Entity<Guid>
         return normalizedName;
     }
 
-    private static IReadOnlyCollection<string> ValidatePermissionCodes(IEnumerable<string> permissionCodes)
+    private static IReadOnlyCollection<string> ValidatePermissionCodes(IReadOnlyCollection<string> permissionCodes)
     {
         var codes = permissionCodes?.Distinct(StringComparer.Ordinal).ToArray()
             ?? throw new ArgumentNullException(nameof(permissionCodes));

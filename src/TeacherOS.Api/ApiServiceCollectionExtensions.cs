@@ -1,8 +1,10 @@
-using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using TeacherOS.Api.Authentication;
+using TeacherOS.Api.Authorization;
 using TeacherOS.Api.Errors;
 using TeacherOS.Api.Observability;
 using TeacherOS.Api.Tenancy;
@@ -83,6 +85,8 @@ public static class ApiServiceCollectionExtensions
             options.ValidationInterval = TimeSpan.FromMinutes(5));
 
         services.AddAuthorization();
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         services.AddAntiforgery(options =>
         {

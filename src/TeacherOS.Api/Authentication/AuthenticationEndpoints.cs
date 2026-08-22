@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
+using TeacherOS.Api.Authorization;
 using TeacherOS.Api.Errors;
 using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Application.Authentication;
+using TeacherOS.Domain.Authorization;
 using TeacherOS.Infrastructure.Identity;
 
 namespace TeacherOS.Api.Authentication;

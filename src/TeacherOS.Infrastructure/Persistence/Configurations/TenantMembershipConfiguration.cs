@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TeacherOS.Domain.Authorization;
 using TeacherOS.Domain.Tenancy;
 using TeacherOS.Infrastructure.Identity;
 
@@ -43,6 +44,8 @@ internal sealed class TenantMembershipConfiguration : IEntityTypeConfiguration<T
             .IsUnique()
             .HasDatabaseName("UX_TenantMemberships_TenantId_UserId");
 
+        builder.Property(membership => membership.RoleId);
+
         builder.HasIndex(membership => membership.UserId);
 
         builder.HasOne<Tenant>()
@@ -53,6 +56,12 @@ internal sealed class TenantMembershipConfiguration : IEntityTypeConfiguration<T
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(membership => membership.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        builder.HasOne<Role>()
+            .WithMany()
+            .HasForeignKey(membership => membership.RoleId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

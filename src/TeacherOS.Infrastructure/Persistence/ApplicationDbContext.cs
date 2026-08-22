@@ -1,5 +1,6 @@
-using System;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using System;
+using TeacherOS.Domain.Authorization;
 using TeacherOS.Domain.Tenancy;
 using TeacherOS.Infrastructure.Identity;
 
@@ -9,6 +10,7 @@ internal sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext
     : IdentityUserContext<ApplicationUser, Guid>(options)
 {
     internal DbSet<Tenant> Tenants => Set<Tenant>();
+    internal DbSet<Role> Roles => Set<Role>();
 
     internal DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
 

@@ -1,3 +1,4 @@
+using Scalar.AspNetCore;
 using TeacherOS.Api;
 using TeacherOS.Api.Authentication;
 using TeacherOS.Api.Observability;
@@ -14,6 +15,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference("");
 }
 else
 {

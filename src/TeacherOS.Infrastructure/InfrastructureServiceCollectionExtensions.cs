@@ -1,11 +1,13 @@
-using System;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using System;
 using TeacherOS.Application.Abstractions.Authentication;
+using TeacherOS.Application.Abstractions.Authorization;
 using TeacherOS.Application.Abstractions.Tenancy;
+using TeacherOS.Infrastructure.Authorization;
 using TeacherOS.Infrastructure.Configuration;
 using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Persistence;
@@ -57,6 +59,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICurrentSessionReader, CurrentSessionReader>();
         services.AddScoped<ITenantMembershipResolver, TenantMembershipResolver>();
         services.AddScoped<IIdentityPrincipalFactory, IdentityPrincipalFactory>();
+        services.AddScoped<IPermissionResolver, PermissionResolver>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);

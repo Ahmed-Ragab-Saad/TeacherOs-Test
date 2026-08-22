@@ -9,12 +9,14 @@ public sealed class TenantMembership : Entity<Guid>
         Guid id,
         Guid tenantId,
         Guid userId,
-        TenantMembershipStatus status)
+        TenantMembershipStatus status,
+        Guid? roleId = null)
         : base(ValidateId(id))
     {
         TenantId = ValidateRequiredId(tenantId, nameof(tenantId));
         UserId = ValidateRequiredId(userId, nameof(userId));
         Status = ValidateStatus(status);
+        RoleId = roleId;
     }
 
     public Guid TenantId { get; private set; }
@@ -22,6 +24,7 @@ public sealed class TenantMembership : Entity<Guid>
     public Guid UserId { get; private set; }
 
     public TenantMembershipStatus Status { get; private set; }
+    public Guid? RoleId { get; private set; }
 
     private static Guid ValidateId(Guid id)
     {

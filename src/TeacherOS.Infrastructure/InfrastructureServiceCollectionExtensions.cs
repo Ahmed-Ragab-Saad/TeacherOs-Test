@@ -63,7 +63,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIdentityPrincipalFactory, IdentityPrincipalFactory>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
         services.AddScoped<ITenantContext, TenantContext>();
-        services.AddScoped<ITenantContextEstablisher>(sp => (ITenantContextEstablisher)sp.GetRequiredService<ITenantContext>());
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);

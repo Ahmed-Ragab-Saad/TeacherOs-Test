@@ -25,6 +25,9 @@ public sealed class OnboardingPersistenceTests
     private const string DefaultConnectionString =
         "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
 
+    private static readonly object DatabaseInitLock = new();
+    private static bool _databaseInitialized;
+
     [Fact]
     public async Task Real_onboarding_persists_user_tenant_owner_role_and_membership_atomically()
     {
@@ -172,15 +175,14 @@ public sealed class OnboardingPersistenceTests
 
     private static IServiceProvider CreateServiceProvider()
     {
-        var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddUserSecrets<TeacherOSApiFactory>(optional: true);
-        configBuilder.AddEnvironmentVariables();
-        configBuilder.AddInMemoryCollection(new[]
-        {
-            new KeyValuePair<string, string?>("Database:ConnectionString", DefaultConnectionString),
-        });
+        var connectionString = ResolveConnectionString();
 
-        var configuration = configBuilder.Build();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[]
+            {
+                new KeyValuePair<string, string?>("Database:ConnectionString", connectionString),
+            })
+            .Build();
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -188,7 +190,60 @@ public sealed class OnboardingPersistenceTests
         services.AddInfrastructure(configuration);
         services.AddScoped<RegisterHandler>();
 
-        return services.BuildServiceProvider();
+        var serviceProvider = services.BuildServiceProvider();
+        EnsureDatabaseMigrated(serviceProvider);
+
+        return serviceProvider;
+    }
+
+    private static string ResolveConnectionString()
+    {
+        // 1. Explicit CI/Test environment variable
+        var testEnvConn = Environment.GetEnvironmentVariable("TEACHEROS_TEST_DB_CONNECTION_STRING");
+        if (!string.IsNullOrWhiteSpace(testEnvConn))
+        {
+            return testEnvConn;
+        }
+
+        var databaseEnvConn = Environment.GetEnvironmentVariable("Database__ConnectionString");
+        if (!string.IsNullOrWhiteSpace(databaseEnvConn))
+        {
+            return databaseEnvConn;
+        }
+
+        // 2. User Secrets (for local developer workstation)
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddUserSecrets<TeacherOSApiFactory>(optional: true);
+        var config = configBuilder.Build();
+        var userSecretsConn = config.GetSection("Database:ConnectionString").Value;
+        if (!string.IsNullOrWhiteSpace(userSecretsConn))
+        {
+            return userSecretsConn;
+        }
+
+        // 3. Fallback default
+        return DefaultConnectionString;
+    }
+
+    private static void EnsureDatabaseMigrated(IServiceProvider serviceProvider)
+    {
+        if (_databaseInitialized)
+        {
+            return;
+        }
+
+        lock (DatabaseInitLock)
+        {
+            if (_databaseInitialized)
+            {
+                return;
+            }
+
+            using var scope = serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            dbContext.Database.Migrate();
+            _databaseInitialized = true;
+        }
     }
 
     private sealed class FailingUnitOfWork(IUnitOfWork inner) : IUnitOfWork

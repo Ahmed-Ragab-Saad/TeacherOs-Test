@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
 using TeacherOS.Application.Abstractions.Tenancy;
 
-namespace TeacherOS.Api.Tenancy;
+namespace TeacherOS.Infrastructure.Tenancy;
 
 internal sealed class TenantContext : ITenantContext
 {
@@ -11,7 +14,7 @@ internal sealed class TenantContext : ITenantContext
     public Guid TenantId => _tenantId
         ?? throw new InvalidOperationException("No tenant has been established for this request.");
 
-    internal void Establish(Guid tenantId)
+    public void Establish(Guid tenantId)
     {
         if (tenantId == Guid.Empty)
         {

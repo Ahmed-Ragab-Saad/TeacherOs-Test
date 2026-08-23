@@ -12,12 +12,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference("");
-}
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
 }
@@ -32,6 +27,9 @@ app.UseAuthentication();
 app.UseMiddleware<TenantContextMiddleware>();
 app.UseAuthorization();
 app.UseAntiforgery();
+
+app.MapOpenApi();
+app.MapScalarApiReference("");
 
 app.MapAuthenticationEndpoints();
 

@@ -34,7 +34,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: '10.0.x'
 
       - name: Restore
         run: dotnet restore TeacherOS.slnx
@@ -46,3 +46,71 @@ jobs:
         env:
           TEACHEROS_TEST_DB_CONNECTION_STRING: "Server=127.0.0.1,1433;Database=TeacherOS_CI;User Id=sa;Password=YourStrong@Passw0rd_CI_2026!;TrustServerCertificate=true;Encrypt=true;"
         run: dotnet test TeacherOS.slnx --configuration Release --no-build
+
+  deploy_production:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish API
+        run: dotnet publish src/TeacherOS.Api/TeacherOS.Api.csproj --configuration Release --runtime win-x86 --self-contained false --output ./publish
+
+      - name: Deploy to MonsterASP.NET
+        uses: rasmusbuchholdt/simply-web-deploy@2.2.0
+        with:
+          website-name: ${{ secrets.WEBSITE_NAME }}
+          server-computer-name: ${{ secrets.SERVER_COMPUTER_NAME }}
+          server-username: ${{ secrets.SERVER_USERNAME }}
+          server-password: ${{ secrets.SERVER_PASSWORD }}
+          source-path: './publish'
+
+      - name: Verify production health
+        shell: pwsh
+        run: |
+          $endpoints = @(
+            "https://teachos.runasp.net/health/live",
+            "https://teachos.runasp.net/health/ready"
+          )
+          $maxAttempts = 18
+          $delaySeconds = 5
+
+          foreach ($url in $endpoints) {
+            Write-Host "Verifying endpoint: $url"
+            $attempt = 1
+            $success = $false
+
+            while ($attempt -le $maxAttempts) {
+              try {
+                $response = Invoke-WebRequest -Uri $url -Method Get -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+                if ($response.StatusCode -eq 200) {
+                  Write-Host "Endpoint $url returned HTTP 200 on attempt $attempt"
+                  $success = $true
+                  break
+                } else {
+                  Write-Host "Attempt $attempt: received HTTP $($response.StatusCode). Retrying in $delaySeconds seconds..."
+                }
+              } catch {
+                Write-Host "Attempt $attempt: request failed ($($_.Exception.Message)). Retrying in $delaySeconds seconds..."
+              }
+
+              Start-Sleep -Seconds $delaySeconds
+              $attempt++
+            }
+
+            if (-not $success) {
+              Write-Error "Production health check failed: $url did not return HTTP 200 within $($maxAttempts * $delaySeconds) seconds."
+              exit 1
+            }
+          }

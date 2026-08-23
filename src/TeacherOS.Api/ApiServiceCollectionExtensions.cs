@@ -49,9 +49,6 @@ public static class ApiServiceCollectionExtensions
             serviceProvider.GetRequiredService<CorrelationContext>());
 
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
-        services.AddScoped<TenantContext>();
-        services.AddScoped<ITenantContext>(serviceProvider =>
-            serviceProvider.GetRequiredService<TenantContext>());
         services.AddScoped<LoginHandler>();
         services.AddScoped<RegisterHandler>();
         services.AddScoped<GetCurrentSessionHandler>();

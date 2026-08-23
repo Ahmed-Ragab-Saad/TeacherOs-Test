@@ -62,6 +62,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ITenantOnboardingStore, TenantOnboardingStore>();
         services.AddScoped<IIdentityPrincipalFactory, IdentityPrincipalFactory>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
+        services.AddScoped<ITenantContext, TenantContext>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);

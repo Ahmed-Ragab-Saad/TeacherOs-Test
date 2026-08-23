@@ -13,7 +13,7 @@ internal sealed class TenantContextMiddleware(RequestDelegate next)
         HttpContext httpContext,
         ICurrentUser currentUser,
         ITenantMembershipResolver membershipResolver,
-        TenantContext tenantContext)
+        ITenantContextEstablisher tenantContext)
     {
         if (!httpContext.Request.Headers.TryGetValue(TenantHeaderName, out var values))
         {

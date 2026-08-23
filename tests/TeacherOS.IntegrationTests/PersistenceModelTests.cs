@@ -11,6 +11,7 @@ using TeacherOS.Domain.Tenancy;
 using TeacherOS.Infrastructure;
 using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Persistence;
+using TeacherOS.Infrastructure.Tenancy;
 using Xunit;
 
 namespace TeacherOS.IntegrationTests;
@@ -111,6 +112,6 @@ public sealed class PersistenceModelTests
                 "Server=localhost;Database=TeacherOSModelTests;Integrated Security=true;Encrypt=false")
             .Options;
 
-        return new ApplicationDbContext(options);
+        return new ApplicationDbContext(options, new TenantContext());
     }
 }

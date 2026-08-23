@@ -1,5 +1,5 @@
 using System;
-using TeacherOS.Api.Tenancy;
+using TeacherOS.Infrastructure.Tenancy;
 using Xunit;
 
 namespace TeacherOS.IntegrationTests;

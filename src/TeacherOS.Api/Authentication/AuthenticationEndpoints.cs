@@ -23,6 +23,15 @@ internal static class AuthenticationEndpoints
             .Produces<AntiforgeryTokenResponse>()
             .AllowAnonymous();
 
+        group.MapPost("/register", RegisterAsync)
+            .Produces<RegisterResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .AllowAnonymous()
+            .RequireRateLimiting(AuthenticationConstants.RegisterRateLimitPolicy)
+            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+
         group.MapPost("/login", LoginAsync)
             .Produces<LoginResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -55,6 +64,25 @@ internal static class AuthenticationEndpoints
         httpContext.Response.Headers.CacheControl = "no-store";
 
         return TypedResults.Ok(new AntiforgeryTokenResponse(tokens.RequestToken!));
+    }
+
+    private static async Task<IResult> RegisterAsync(
+        RegisterRequest request,
+        RegisterHandler registerHandler,
+        CancellationToken cancellationToken)
+    {
+        var result = await registerHandler.HandleAsync(
+            new RegisterCommand(request.Email, request.Password, request.TenantName),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return ApiProblemDetails.FromError(result.Error);
+        }
+
+        return TypedResults.Created(
+            "/api/auth/me",
+            new RegisterResponse(result.Value.UserId, result.Value.Email, result.Value.TenantId));
     }
 
     private static async Task<IResult> LoginAsync(

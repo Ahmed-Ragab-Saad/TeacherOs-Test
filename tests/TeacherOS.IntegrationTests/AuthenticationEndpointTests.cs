@@ -56,6 +56,112 @@ public sealed class AuthenticationEndpointTests : IClassFixture<TeacherOSApiFact
     }
 
     [Fact]
+    public async Task Register_without_antiforgery_token_is_rejected()
+    {
+        using var client = CreateClient();
+        using var response = await client.PostAsJsonAsync(
+            "/api/auth/register",
+            new { Email = "new@example.com", Password = "Password123!", TenantName = "New Academy" },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("Antiforgery.ValidationFailed", await ReadProblemCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task Register_with_valid_request_returns_created_and_safe_payload()
+    {
+        using var client = CreateClient();
+        var antiforgery = await GetAntiforgeryTokenAsync(client);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/register")
+        {
+            Content = JsonContent.Create(new
+            {
+                Email = "fresh-teacher@example.com",
+                Password = "ValidPassword123!",
+                TenantName = "Fresh Academy",
+            }),
+        };
+        request.Headers.Add("X-CSRF-TOKEN", antiforgery.Token);
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        using var document = await ReadJsonAsync(response);
+        var root = document.RootElement;
+        Assert.NotEqual(Guid.Empty, root.GetProperty("userId").GetGuid());
+        Assert.Equal("fresh-teacher@example.com", root.GetProperty("email").GetString());
+        Assert.NotEqual(Guid.Empty, root.GetProperty("tenantId").GetGuid());
+
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("password", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("token", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Register_with_duplicate_email_returns_conflict()
+    {
+        using var client = CreateClient();
+        var antiforgery = await GetAntiforgeryTokenAsync(client);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/register")
+        {
+            Content = JsonContent.Create(new
+            {
+                Email = TestAuthenticationData.Email,
+                Password = "ValidPassword123!",
+                TenantName = "Duplicate Academy",
+            }),
+        };
+        request.Headers.Add("X-CSRF-TOKEN", antiforgery.Token);
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("Authentication.DuplicateEmail", await ReadProblemCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task Register_endpoint_is_rate_limited()
+    {
+        await using var isolatedFactory = new TeacherOSApiFactory();
+        using var client = CreateClient(isolatedFactory);
+        var antiforgery = await GetAntiforgeryTokenAsync(client);
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/register")
+            {
+                Content = JsonContent.Create(new
+                {
+                    Email = $"user{attempt}@example.com",
+                    Password = "ValidPassword123!",
+                    TenantName = "Rate Limit Academy",
+                }),
+            };
+            request.Headers.Add("X-CSRF-TOKEN", antiforgery.Token);
+
+            using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        }
+
+        using var rejectedRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/register")
+        {
+            Content = JsonContent.Create(new
+            {
+                Email = "overflow@example.com",
+                Password = "ValidPassword123!",
+                TenantName = "Rate Limit Academy",
+            }),
+        };
+        rejectedRequest.Headers.Add("X-CSRF-TOKEN", antiforgery.Token);
+
+        using var rejected = await client.SendAsync(rejectedRequest, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
+        Assert.Equal("Authentication.RateLimitExceeded", await ReadProblemCodeAsync(rejected));
+    }
+
+    [Fact]
     public async Task Cookie_session_and_tenant_selection_fail_closed_end_to_end()
     {
         using var client = CreateClient();

@@ -10,8 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TeacherOS.Application.Abstractions.Authentication;
+using TeacherOS.Application.Abstractions.Data;
 using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Application.Authentication;
+using TeacherOS.Application.Common;
+using TeacherOS.Domain.Authorization;
 using TeacherOS.Domain.Tenancy;
 using TeacherOS.Infrastructure.Identity;
 
@@ -37,12 +40,59 @@ public sealed class TeacherOSApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<ICurrentSessionReader>();
             services.RemoveAll<ITenantMembershipResolver>();
             services.RemoveAll<IIdentityPrincipalFactory>();
+            services.RemoveAll<IIdentityUserRegistrar>();
+            services.RemoveAll<ITenantOnboardingStore>();
+            services.RemoveAll<IUnitOfWork>();
 
             services.AddSingleton<IIdentityAuthenticator, TestIdentityAuthenticator>();
             services.AddSingleton<ICurrentSessionReader, TestCurrentSessionReader>();
             services.AddSingleton<ITenantMembershipResolver, TestTenantMembershipResolver>();
             services.AddSingleton<IIdentityPrincipalFactory, TestIdentityPrincipalFactory>();
+            services.AddSingleton<IIdentityUserRegistrar, TestIdentityUserRegistrar>();
+            services.AddSingleton<ITenantOnboardingStore, TestTenantOnboardingStore>();
+            services.AddSingleton<IUnitOfWork, TestUnitOfWork>();
         });
+    }
+
+    private sealed class TestIdentityUserRegistrar : IIdentityUserRegistrar
+    {
+        public Task<Result<IdentityRegistrationResult>> RegisterAsync(
+            string email,
+            string password,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (string.Equals(email, TestAuthenticationData.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(Result<IdentityRegistrationResult>.Failure(AuthenticationErrors.DuplicateEmail));
+            }
+
+            return Task.FromResult(Result<IdentityRegistrationResult>.Success(
+                new IdentityRegistrationResult(Guid.NewGuid(), email)));
+        }
+    }
+
+    private sealed class TestTenantOnboardingStore : ITenantOnboardingStore
+    {
+        public void Add(Tenant tenant, Role ownerRole, TenantMembership membership)
+        {
+        }
+    }
+
+    private sealed class TestUnitOfWork : IUnitOfWork
+    {
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(1);
+        }
+
+        public Task<Result<T>> ExecuteInTransactionAsync<T>(
+            Func<CancellationToken, Task<Result<T>>> operation,
+            CancellationToken cancellationToken = default)
+        {
+            return operation(cancellationToken);
+        }
     }
 
     private sealed class TestIdentityAuthenticator : IIdentityAuthenticator

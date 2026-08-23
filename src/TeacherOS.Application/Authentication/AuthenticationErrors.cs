@@ -18,4 +18,29 @@ public static class AuthenticationErrors
         "Authentication.SessionUnavailable",
         "The authenticated session is unavailable.",
         ErrorType.Unauthorized);
+
+    public static Error InvalidEmail { get; } = new(
+        "Authentication.InvalidEmail",
+        "A valid email address is required.",
+        ErrorType.Validation);
+
+    public static Error PasswordRequired { get; } = new(
+        "Authentication.PasswordRequired",
+        "A password is required.",
+        ErrorType.Validation);
+
+    public static Error TenantNameRequired { get; } = new(
+        "Authentication.TenantNameRequired",
+        "A tenant name is required.",
+        ErrorType.Validation);
+
+    public static Error TenantNameTooLong { get; } = new(
+        "Authentication.TenantNameTooLong",
+        $"Tenant name cannot exceed {TeacherOS.Domain.Tenancy.Tenant.MaxNameLength} characters.",
+        ErrorType.Validation);
+
+    public static Error DuplicateEmail { get; } = new(
+        "Authentication.DuplicateEmail",
+        "A user with this email already exists.",
+        ErrorType.Conflict);
 }

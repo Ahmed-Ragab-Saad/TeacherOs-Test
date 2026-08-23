@@ -53,6 +53,7 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<ITenantContext>(serviceProvider =>
             serviceProvider.GetRequiredService<TenantContext>());
         services.AddScoped<LoginHandler>();
+        services.AddScoped<RegisterHandler>();
         services.AddScoped<GetCurrentSessionHandler>();
 
         services.AddAuthentication(AuthenticationConstants.CookieScheme)
@@ -116,6 +117,18 @@ public static class ApiServiceCollectionExtensions
                     {
                         AutoReplenishment = true,
                         PermitLimit = 10,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+
+            options.AddPolicy(
+                AuthenticationConstants.RegisterRateLimitPolicy,
+                httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 5,
                         QueueLimit = 0,
                         Window = TimeSpan.FromMinutes(1),
                     }));

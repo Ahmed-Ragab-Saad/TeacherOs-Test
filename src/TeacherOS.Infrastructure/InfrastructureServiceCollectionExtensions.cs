@@ -56,8 +56,10 @@ public static class InfrastructureServiceCollectionExtensions
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
         services.AddScoped<IIdentityAuthenticator, IdentityAuthenticator>();
+        services.AddScoped<IIdentityUserRegistrar, IdentityUserRegistrar>();
         services.AddScoped<ICurrentSessionReader, CurrentSessionReader>();
         services.AddScoped<ITenantMembershipResolver, TenantMembershipResolver>();
+        services.AddScoped<ITenantOnboardingStore, TenantOnboardingStore>();
         services.AddScoped<IIdentityPrincipalFactory, IdentityPrincipalFactory>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
 

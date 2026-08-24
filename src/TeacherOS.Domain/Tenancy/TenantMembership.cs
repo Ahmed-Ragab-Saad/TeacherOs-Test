@@ -26,6 +26,21 @@ public sealed class TenantMembership : Entity<Guid>
     public TenantMembershipStatus Status { get; private set; }
     public Guid? RoleId { get; private set; }
 
+    public void UpdateStatus(TenantMembershipStatus newStatus)
+    {
+        Status = ValidateStatus(newStatus);
+    }
+
+    public void Activate()
+    {
+        Status = TenantMembershipStatus.Active;
+    }
+
+    public void Suspend()
+    {
+        Status = TenantMembershipStatus.Suspended;
+    }
+
     private static Guid ValidateId(Guid id)
     {
         if (id == Guid.Empty)

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Builder;
+
 namespace TeacherOS.Api.Authorization;
 
 internal static class PermissionEndpointExtensions

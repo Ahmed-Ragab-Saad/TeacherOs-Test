@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Routing;
 using TeacherOS.Api.Authentication;
 using TeacherOS.Api.Authorization;
 using TeacherOS.Api.Errors;
+using TeacherOS.Api.OpenApi;
 using TeacherOS.Application.Memberships;
 using TeacherOS.Domain.Authorization;
 using TeacherOS.Domain.Tenancy;
@@ -20,6 +21,7 @@ internal static class MembershipEndpoints
     {
         var group = endpoints.MapGroup("/api/tenants/{tenantId:guid}/members")
             .WithTags("Tenant Memberships")
+            .RequireTenantContext()
             .RequirePermission(Permission.MembersManage);
 
         group.MapGet("/", ListMembersAsync)
@@ -34,7 +36,7 @@ internal static class MembershipEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireAntiforgeryToken();
 
         return endpoints;
     }

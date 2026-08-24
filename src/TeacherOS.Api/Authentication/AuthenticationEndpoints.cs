@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using TeacherOS.Api.Authorization;
 using TeacherOS.Api.Errors;
+using TeacherOS.Api.OpenApi;
 using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Application.Authentication;
 using TeacherOS.Domain.Authorization;
@@ -21,7 +22,9 @@ internal static class AuthenticationEndpoints
 
         group.MapGet("/antiforgery", GetAntiforgeryToken)
             .Produces<AntiforgeryTokenResponse>()
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .WithSummary("Generate an antiforgery token")
+            .WithDescription("Issues a request antiforgery token and sets the associated antiforgery cookie (__Host-TeacherOS.Antiforgery). To perform state-changing mutations (POST, PATCH, DELETE), include the returned token in the X-CSRF-TOKEN request header alongside the antiforgery cookie.");
 
         group.MapPost("/register", RegisterAsync)
             .Produces<RegisterResponse>(StatusCodes.Status201Created)
@@ -30,7 +33,7 @@ internal static class AuthenticationEndpoints
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .AllowAnonymous()
             .RequireRateLimiting(AuthenticationConstants.RegisterRateLimitPolicy)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireAntiforgeryToken();
 
         group.MapPost("/login", LoginAsync)
             .Produces<LoginResponse>()
@@ -39,7 +42,7 @@ internal static class AuthenticationEndpoints
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .AllowAnonymous()
             .RequireRateLimiting(AuthenticationConstants.LoginRateLimitPolicy)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireAntiforgeryToken();
 
         group.MapGet("/me", GetCurrentSessionAsync)
             .Produces<CurrentSessionResponse>()
@@ -52,7 +55,7 @@ internal static class AuthenticationEndpoints
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>()
+            .RequireAntiforgeryToken()
             .RequireAuthorization();
 
         return endpoints;

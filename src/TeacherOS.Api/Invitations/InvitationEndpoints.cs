@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using TeacherOS.Api.Authentication;
 using TeacherOS.Api.Authorization;
 using TeacherOS.Api.Errors;
+using TeacherOS.Api.OpenApi;
 using TeacherOS.Application.Invitations;
 using TeacherOS.Domain.Authorization;
 
@@ -20,6 +21,7 @@ internal static class InvitationEndpoints
     {
         var tenantGroup = endpoints.MapGroup("/api/tenants/{tenantId:guid}/invitations")
             .WithTags("Tenant Invitations")
+            .RequireTenantContext()
             .RequirePermission(Permission.MembersManage);
 
         tenantGroup.MapGet("/", ListInvitationsAsync)
@@ -35,7 +37,7 @@ internal static class InvitationEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .RequireRateLimiting(AuthenticationConstants.InvitationCreateRateLimitPolicy)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireAntiforgeryToken();
 
         tenantGroup.MapPost("/{invitationId:guid}/revoke", RevokeInvitationAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -44,7 +46,7 @@ internal static class InvitationEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireAntiforgeryToken();
 
         var publicGroup = endpoints.MapGroup("/api/tenant-invitations")
             .WithTags("Public Tenant Invitations");
@@ -65,7 +67,7 @@ internal static class InvitationEndpoints
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .AllowAnonymous()
             .RequireRateLimiting(AuthenticationConstants.InvitationAcceptRateLimitPolicy)
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireAntiforgeryToken();
 
         return endpoints;
     }

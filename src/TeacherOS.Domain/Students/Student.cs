@@ -76,6 +76,24 @@ public sealed class Student : Entity<Guid>, ITenantOwnedEntity
         BranchId = ValidateRequiredId(branchId, nameof(branchId), "Branch");
     }
 
+    public void UpdateDetails(
+        Guid branchId,
+        Guid gradeLevelId,
+        string fullName,
+        string nationalId,
+        DateOnly enrollmentDate,
+        string? phoneNumber,
+        string? photoUrl)
+    {
+        BranchId = ValidateRequiredId(branchId, nameof(branchId), "Branch");
+        GradeLevelId = ValidateRequiredId(gradeLevelId, nameof(gradeLevelId), "Grade level");
+        FullName = ValidateFullName(fullName);
+        NationalId = ValidateNationalId(nationalId);
+        EnrollmentDate = enrollmentDate;
+        PhoneNumber = NormalizeOptional(phoneNumber, MaxPhoneNumberLength, nameof(phoneNumber));
+        PhotoUrl = NormalizeOptional(photoUrl, MaxPhotoUrlLength, nameof(photoUrl));
+    }
+
     private static Guid ValidateId(Guid id)
     {
         if (id == Guid.Empty)

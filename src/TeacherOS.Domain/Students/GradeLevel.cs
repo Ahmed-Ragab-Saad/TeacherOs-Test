@@ -23,6 +23,12 @@ public sealed class GradeLevel : Entity<Guid>, ITenantOwnedEntity
 
     public int SortOrder { get; private set; }
 
+    public void Update(string name, int sortOrder)
+    {
+        Name = ValidateName(name);
+        SortOrder = ValidateSortOrder(sortOrder);
+    }
+
     private static Guid ValidateId(Guid id)
     {
         if (id == Guid.Empty)

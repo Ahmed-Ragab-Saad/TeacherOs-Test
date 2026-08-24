@@ -86,6 +86,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ITenantInvitationStore, TenantInvitationStore>();
         services.AddScoped<ITenantMembershipManagementStore, TenantMembershipManagementStore>();
         services.AddScoped<IStudentReader, StudentReader>();
+        services.AddScoped<IStudentManagementStore, StudentManagementStore>();
         services.AddScoped<IEmailOutboxProcessor, EmailOutboxProcessor>();
         services.AddHostedService<Email.EmailOutboxBackgroundService>();
 

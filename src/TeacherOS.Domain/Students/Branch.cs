@@ -20,6 +20,11 @@ public sealed class Branch : Entity<Guid>, ITenantOwnedEntity
 
     public string Name { get; private set; }
 
+    public void Rename(string name)
+    {
+        Name = ValidateName(name);
+    }
+
     private static Guid ValidateId(Guid id)
     {
         if (id == Guid.Empty)

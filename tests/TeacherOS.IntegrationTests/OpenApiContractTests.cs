@@ -149,6 +149,32 @@ public sealed class OpenApiContractTests : IClassFixture<TeacherOSApiFactory>
         Assert.Contains("X-CSRF-TOKEN", headers.Keys);
     }
 
+    [Theory]
+    [InlineData("/api/tenants/{tenantId}/branches", "get", false)]
+    [InlineData("/api/tenants/{tenantId}/branches", "post", true)]
+    [InlineData("/api/tenants/{tenantId}/branches/{branchId}", "get", false)]
+    [InlineData("/api/tenants/{tenantId}/branches/{branchId}", "patch", true)]
+    [InlineData("/api/tenants/{tenantId}/grade-levels", "get", false)]
+    [InlineData("/api/tenants/{tenantId}/grade-levels", "post", true)]
+    [InlineData("/api/tenants/{tenantId}/grade-levels/{gradeLevelId}", "get", false)]
+    [InlineData("/api/tenants/{tenantId}/grade-levels/{gradeLevelId}", "patch", true)]
+    [InlineData("/api/tenants/{tenantId}/students", "get", false)]
+    [InlineData("/api/tenants/{tenantId}/students", "post", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}", "get", false)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}", "patch", true)]
+    public async Task Student_module_endpoints_require_tenant_header_and_writes_require_antiforgery(
+        string path,
+        string method,
+        bool isWrite)
+    {
+        var doc = await GetOpenApiDocumentAsync();
+        var operation = GetOperation(doc, path, method);
+        var headers = GetHeaderParameters(operation);
+
+        Assert.Contains("X-Tenant-Id", headers.Keys);
+        Assert.Equal(isWrite, headers.ContainsKey("X-CSRF-TOKEN"));
+    }
+
     [Fact]
     public async Task Public_invitation_inspect_requires_no_tenant_header_and_no_antiforgery_header()
     {

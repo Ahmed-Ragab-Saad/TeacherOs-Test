@@ -10,12 +10,14 @@ using TeacherOS.Application.Abstractions.Authorization;
 using TeacherOS.Application.Abstractions.Email;
 using TeacherOS.Application.Abstractions.Invitations;
 using TeacherOS.Application.Abstractions.Memberships;
+using TeacherOS.Application.Abstractions.Students;
 using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Infrastructure.Authorization;
 using TeacherOS.Infrastructure.Configuration;
 using TeacherOS.Infrastructure.Email;
 using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Persistence;
+using TeacherOS.Infrastructure.Students;
 using TeacherOS.Infrastructure.Tenancy;
 
 namespace TeacherOS.Infrastructure;
@@ -83,6 +85,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IInvitationTokenService, InvitationTokenService>();
         services.AddScoped<ITenantInvitationStore, TenantInvitationStore>();
         services.AddScoped<ITenantMembershipManagementStore, TenantMembershipManagementStore>();
+        services.AddScoped<IStudentReader, StudentReader>();
         services.AddScoped<IEmailOutboxProcessor, EmailOutboxProcessor>();
         services.AddHostedService<Email.EmailOutboxBackgroundService>();
 

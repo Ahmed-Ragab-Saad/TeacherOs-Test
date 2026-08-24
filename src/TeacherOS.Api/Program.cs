@@ -4,6 +4,7 @@ using TeacherOS.Api.Authentication;
 using TeacherOS.Api.Invitations;
 using TeacherOS.Api.Memberships;
 using TeacherOS.Api.Observability;
+using TeacherOS.Api.Students;
 using TeacherOS.Api.Tenancy;
 using TeacherOS.Infrastructure;
 
@@ -36,6 +37,7 @@ app.MapScalarApiReference("");
 app.MapAuthenticationEndpoints();
 app.MapMembershipEndpoints();
 app.MapInvitationEndpoints();
+app.MapStudentEndpoints();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

@@ -59,6 +59,7 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<TeacherOS.Application.Invitations.AcceptTenantInvitationHandler>();
         services.AddScoped<TeacherOS.Application.Memberships.ListTenantMembersHandler>();
         services.AddScoped<TeacherOS.Application.Memberships.UpdateTenantMembershipStatusHandler>();
+        services.AddScoped<TeacherOS.Application.Students.ListStudentsHandler>();
 
         services.AddAuthentication(AuthenticationConstants.CookieScheme)
             .AddCookie(AuthenticationConstants.CookieScheme, options =>

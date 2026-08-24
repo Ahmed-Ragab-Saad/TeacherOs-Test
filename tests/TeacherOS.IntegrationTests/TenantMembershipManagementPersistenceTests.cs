@@ -27,16 +27,11 @@ namespace TeacherOS.IntegrationTests;
 
 public sealed class TenantMembershipManagementPersistenceTests
 {
-    private const string DefaultConnectionString =
-        "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
-
-    private static readonly object DatabaseInitLock = new();
-    private static bool _databaseInitialized;
-
     [Fact]
     public async Task Full_membership_lifecycle_and_final_owner_protection_with_real_sql()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -142,7 +137,8 @@ public sealed class TenantMembershipManagementPersistenceTests
     [Fact]
     public async Task Two_owners_scenario_allows_suspending_one_owner()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -215,7 +211,8 @@ public sealed class TenantMembershipManagementPersistenceTests
     [Fact]
     public async Task Concurrent_deactivation_of_two_owners_prevents_zero_owners_invariant_violation()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
 
         // 1. Setup tenant with 2 active owners
         using var setupScope = services.CreateScope();
@@ -266,6 +263,7 @@ public sealed class TenantMembershipManagementPersistenceTests
         var owner2MembershipId = members.Value.Single(m => m.UserId == owner2UserId).MembershipId;
 
         // 2. Concurrently execute Request A (deactivate Owner 1) and Request B (deactivate Owner 2) using separate scopes
+        // Both scopes resolve from the same service provider -> same database -> real concurrent SQL locking.
         using var scopeA = services.CreateScope();
         var handlerA = scopeA.ServiceProvider.GetRequiredService<UpdateTenantMembershipStatusHandler>();
         var tenantContextA = scopeA.ServiceProvider.GetRequiredService<ITenantContext>();
@@ -325,10 +323,8 @@ public sealed class TenantMembershipManagementPersistenceTests
         Assert.Equal(1, finalActiveOwners);
     }
 
-    private static IServiceProvider CreateServiceProvider()
+    private static IServiceProvider CreateServiceProvider(string connectionString)
     {
-        var connectionString = ResolveConnectionString();
-
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new[]
             {
@@ -359,48 +355,7 @@ public sealed class TenantMembershipManagementPersistenceTests
         services.AddScoped<ListTenantMembersHandler>();
         services.AddScoped<UpdateTenantMembershipStatusHandler>();
 
-        var serviceProvider = services.BuildServiceProvider();
-        EnsureDatabaseMigrated(serviceProvider);
-
-        return serviceProvider;
-    }
-
-    private static string ResolveConnectionString()
-    {
-        var testEnvConn = Environment.GetEnvironmentVariable("TEACHEROS_TEST_DB_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(testEnvConn))
-        {
-            return testEnvConn;
-        }
-
-        var databaseEnvConn = Environment.GetEnvironmentVariable("Database__ConnectionString");
-        if (!string.IsNullOrWhiteSpace(databaseEnvConn))
-        {
-            return databaseEnvConn;
-        }
-
-        return DefaultConnectionString;
-    }
-
-    private static void EnsureDatabaseMigrated(IServiceProvider serviceProvider)
-    {
-        if (_databaseInitialized)
-        {
-            return;
-        }
-
-        lock (DatabaseInitLock)
-        {
-            if (_databaseInitialized)
-            {
-                return;
-            }
-
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
-            _databaseInitialized = true;
-        }
+        return services.BuildServiceProvider();
     }
 
     private sealed class TestCurrentUser : ICurrentUser

@@ -26,7 +26,8 @@ public sealed class EmailOutboxProcessorTests
     [Fact]
     public async Task Immediate_dispatch_success_marks_outbox_sent_and_clears_protected_token()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var tokenService = scope.ServiceProvider.GetRequiredService<IInvitationTokenService>();
@@ -82,7 +83,8 @@ public sealed class EmailOutboxProcessorTests
     [Fact]
     public async Task Transient_failure_schedules_retry_with_backoff_and_leaves_message_pending()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var tokenService = scope.ServiceProvider.GetRequiredService<IInvitationTokenService>();
@@ -137,7 +139,8 @@ public sealed class EmailOutboxProcessorTests
     [Fact]
     public async Task Revoked_invitation_stops_email_delivery_and_marks_outbox_failed()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var tokenService = scope.ServiceProvider.GetRequiredService<IInvitationTokenService>();
@@ -186,15 +189,8 @@ public sealed class EmailOutboxProcessorTests
         Assert.Equal("InvitationInvalid", reloaded.LastErrorCode);
     }
 
-    private const string DefaultConnectionString =
-        "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
-
-    private static readonly object DatabaseInitLock = new();
-    private static bool _databaseInitialized;
-
-    private static IServiceProvider CreateServiceProvider()
+    private static IServiceProvider CreateServiceProvider(string connectionString)
     {
-        var connectionString = ResolveConnectionString();
         var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
             .AddInMemoryCollection(new[]
             {
@@ -212,47 +208,7 @@ public sealed class EmailOutboxProcessorTests
         services.AddSingleton<FakeTransactionalEmailSender>();
         services.AddSingleton<ITransactionalEmailSender>(sp => sp.GetRequiredService<FakeTransactionalEmailSender>());
 
-        var serviceProvider = services.BuildServiceProvider();
-        EnsureDatabaseMigrated(serviceProvider);
-        return serviceProvider;
-    }
-
-    private static string ResolveConnectionString()
-    {
-        var testEnvConn = Environment.GetEnvironmentVariable("TEACHEROS_TEST_DB_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(testEnvConn))
-        {
-            return testEnvConn;
-        }
-
-        var databaseEnvConn = Environment.GetEnvironmentVariable("Database__ConnectionString");
-        if (!string.IsNullOrWhiteSpace(databaseEnvConn))
-        {
-            return databaseEnvConn;
-        }
-
-        return DefaultConnectionString;
-    }
-
-    private static void EnsureDatabaseMigrated(IServiceProvider serviceProvider)
-    {
-        if (_databaseInitialized)
-        {
-            return;
-        }
-
-        lock (DatabaseInitLock)
-        {
-            if (_databaseInitialized)
-            {
-                return;
-            }
-
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
-            _databaseInitialized = true;
-        }
+        return services.BuildServiceProvider();
     }
 
     private sealed class FakeTransactionalEmailSender : ITransactionalEmailSender

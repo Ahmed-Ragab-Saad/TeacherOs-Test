@@ -30,63 +30,11 @@ namespace TeacherOS.IntegrationTests;
 
 public sealed class OwnerPermissionBackfillTests
 {
-    private const string DefaultConnectionString =
-        "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
-
-    private readonly string _databaseName = $"TeacherOS_BackfillTest_{Guid.NewGuid():N}";
-
-    private string GetConnectionString()
-    {
-        var envConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-        var baseConn = !string.IsNullOrWhiteSpace(envConnection) ? envConnection : DefaultConnectionString;
-        var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(baseConn)
-        {
-            InitialCatalog = _databaseName,
-        };
-        return builder.ConnectionString;
-    }
-
-    private ServiceProvider CreateServiceProvider()
-    {
-        var services = new ServiceCollection();
-        var connStr = GetConnectionString();
-
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Database:ConnectionString"] = connStr,
-                ["Brevo:ApiKey"] = "dummy-api-key",
-                ["Brevo:SenderEmail"] = "noreply@teacheros.test",
-                ["Brevo:SenderName"] = "TeacherOS",
-            })
-            .Build();
-
-        services.AddSingleton<IConfiguration>(configuration);
-        services.AddLogging();
-        services.AddInfrastructure(configuration);
-
-        services.AddScoped<ICurrentUser, TestCurrentUser>();
-        services.AddScoped<ITenantContext, TestTenantContext>();
-        services.AddScoped<IPermissionResolver, PermissionResolver>();
-        services.AddScoped<PermissionAuthorizationHandler>();
-        services.AddScoped<RegisterHandler>();
-        services.AddScoped<CreateTenantInvitationHandler>();
-        services.AddScoped<ITenantInvitationStore, TenantInvitationStore>();
-        services.AddScoped<ITenantMembershipManagementStore, TenantMembershipManagementStore>();
-        services.AddScoped<ITransactionalEmailSender, TestEmailSender>();
-
-        var sp = services.BuildServiceProvider();
-        using var scope = sp.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Database.Migrate();
-
-        return sp;
-    }
-
     [Fact]
     public async Task Old_owner_without_members_manage_is_upgraded_by_migration_while_custom_roles_remain_unchanged()
     {
-        using var sp = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        using var sp = CreateServiceProvider(db.ConnectionString);
         using var scope = sp.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var permissionResolver = scope.ServiceProvider.GetRequiredService<IPermissionResolver>();
@@ -236,15 +184,13 @@ public sealed class OwnerPermissionBackfillTests
 
         await authHandler.HandleAsync(customAuthContext);
         Assert.False(customAuthContext.HasSucceeded, "Custom role must remain unauthorized for members.manage.");
-
-        // 7. CLEANUP
-        await dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task Existing_legacy_owner_invitation_creation_flow_succeeds_after_upgrade()
     {
-        using var sp = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        using var sp = CreateServiceProvider(db.ConnectionString);
         using var scope = sp.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var inviteHandler = scope.ServiceProvider.GetRequiredService<CreateTenantInvitationHandler>();
@@ -310,14 +256,13 @@ public sealed class OwnerPermissionBackfillTests
         var inviteResult = await inviteHandler.HandleAsync(inviteCommand, TestContext.Current.CancellationToken);
         Assert.True(inviteResult.IsSuccess, $"Invitation creation should succeed. Error: {inviteResult.Error?.Description}");
         Assert.NotEqual(Guid.Empty, inviteResult.Value.InvitationId);
-
-        await dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task Tenant_isolation_prevents_role_in_tenant_a_from_authorizing_tenant_b()
     {
-        using var sp = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        using var sp = CreateServiceProvider(db.ConnectionString);
         using var scope = sp.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var permissionResolver = scope.ServiceProvider.GetRequiredService<IPermissionResolver>();
@@ -359,18 +304,16 @@ public sealed class OwnerPermissionBackfillTests
         // User has NO permissions in Tenant B
         var permsB = await permissionResolver.GetPermissionsAsync(userId, tenantB.Id, TestContext.Current.CancellationToken);
         Assert.Empty(permsB);
-
-        await dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task New_registered_owner_receives_all_permissions_including_members_manage()
     {
-        using var sp = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        using var sp = CreateServiceProvider(db.ConnectionString);
         using var scope = sp.CreateScope();
         var registerHandler = scope.ServiceProvider.GetRequiredService<RegisterHandler>();
         var permissionResolver = scope.ServiceProvider.GetRequiredService<IPermissionResolver>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var email = $"new_owner_{Guid.NewGuid():N}@test.local";
         var result = await registerHandler.HandleAsync(
@@ -382,8 +325,37 @@ public sealed class OwnerPermissionBackfillTests
         var perms = await permissionResolver.GetPermissionsAsync(result.Value.UserId, result.Value.TenantId, TestContext.Current.CancellationToken);
         Assert.Contains(Permission.MembersManage, perms);
         Assert.Equal(Permission.All.Count, perms.Count);
+    }
 
-        await dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
+    private static ServiceProvider CreateServiceProvider(string connectionString)
+    {
+        var services = new ServiceCollection();
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Database:ConnectionString"] = connectionString,
+                ["Brevo:ApiKey"] = "dummy-api-key",
+                ["Brevo:SenderEmail"] = "noreply@teacheros.test",
+                ["Brevo:SenderName"] = "TeacherOS",
+            })
+            .Build();
+
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+        services.AddInfrastructure(configuration);
+
+        services.AddScoped<ICurrentUser, TestCurrentUser>();
+        services.AddScoped<ITenantContext, TestTenantContext>();
+        services.AddScoped<IPermissionResolver, PermissionResolver>();
+        services.AddScoped<PermissionAuthorizationHandler>();
+        services.AddScoped<RegisterHandler>();
+        services.AddScoped<CreateTenantInvitationHandler>();
+        services.AddScoped<ITenantInvitationStore, TenantInvitationStore>();
+        services.AddScoped<ITenantMembershipManagementStore, TenantMembershipManagementStore>();
+        services.AddScoped<ITransactionalEmailSender, TestEmailSender>();
+
+        return services.BuildServiceProvider();
     }
 
     private sealed class TestCurrentUser : ICurrentUser

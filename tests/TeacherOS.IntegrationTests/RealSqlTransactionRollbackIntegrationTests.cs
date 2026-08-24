@@ -23,16 +23,11 @@ namespace TeacherOS.IntegrationTests;
 
 public sealed class RealSqlTransactionRollbackIntegrationTests
 {
-    private const string DefaultConnectionString =
-        "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
-
-    private static readonly object DatabaseInitLock = new();
-    private static bool _databaseInitialized;
-
     [Fact]
     public async Task Identity_user_creation_rolls_back_if_invitation_acceptance_fails_on_save()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -107,10 +102,8 @@ public sealed class RealSqlTransactionRollbackIntegrationTests
         Assert.False(invitationInDb.IsAccepted);
     }
 
-    private static IServiceProvider CreateServiceProvider()
+    private static IServiceProvider CreateServiceProvider(string connectionString)
     {
-        var connectionString = ResolveConnectionString();
-
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new[]
             {
@@ -137,48 +130,7 @@ public sealed class RealSqlTransactionRollbackIntegrationTests
         services.AddScoped<CreateTenantInvitationHandler>();
         services.AddScoped<AcceptTenantInvitationHandler>();
 
-        var serviceProvider = services.BuildServiceProvider();
-        EnsureDatabaseMigrated(serviceProvider);
-
-        return serviceProvider;
-    }
-
-    private static string ResolveConnectionString()
-    {
-        var testEnvConn = Environment.GetEnvironmentVariable("TEACHEROS_TEST_DB_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(testEnvConn))
-        {
-            return testEnvConn;
-        }
-
-        var databaseEnvConn = Environment.GetEnvironmentVariable("Database__ConnectionString");
-        if (!string.IsNullOrWhiteSpace(databaseEnvConn))
-        {
-            return databaseEnvConn;
-        }
-
-        return DefaultConnectionString;
-    }
-
-    private static void EnsureDatabaseMigrated(IServiceProvider serviceProvider)
-    {
-        if (_databaseInitialized)
-        {
-            return;
-        }
-
-        lock (DatabaseInitLock)
-        {
-            if (_databaseInitialized)
-            {
-                return;
-            }
-
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
-            _databaseInitialized = true;
-        }
+        return services.BuildServiceProvider();
     }
 
     private sealed class FailingUnitOfWork(IUnitOfWork inner) : IUnitOfWork

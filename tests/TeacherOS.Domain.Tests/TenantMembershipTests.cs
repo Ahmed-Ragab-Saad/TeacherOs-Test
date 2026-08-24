@@ -49,4 +49,23 @@ public sealed class TenantMembershipTests
                 Guid.NewGuid(),
                 (TenantMembershipStatus)999));
     }
+
+    [Fact]
+    public void Membership_can_transition_between_active_and_suspended()
+    {
+        var membership = new TenantMembership(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            TenantMembershipStatus.Active);
+
+        membership.Suspend();
+        Assert.Equal(TenantMembershipStatus.Suspended, membership.Status);
+
+        membership.Activate();
+        Assert.Equal(TenantMembershipStatus.Active, membership.Status);
+
+        membership.UpdateStatus(TenantMembershipStatus.Suspended);
+        Assert.Equal(TenantMembershipStatus.Suspended, membership.Status);
+    }
 }

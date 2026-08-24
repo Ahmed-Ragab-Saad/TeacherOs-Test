@@ -1,6 +1,8 @@
 using Scalar.AspNetCore;
 using TeacherOS.Api;
 using TeacherOS.Api.Authentication;
+using TeacherOS.Api.Invitations;
+using TeacherOS.Api.Memberships;
 using TeacherOS.Api.Observability;
 using TeacherOS.Api.Tenancy;
 using TeacherOS.Infrastructure;
@@ -32,6 +34,8 @@ app.MapOpenApi();
 app.MapScalarApiReference("");
 
 app.MapAuthenticationEndpoints();
+app.MapMembershipEndpoints();
+app.MapInvitationEndpoints();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

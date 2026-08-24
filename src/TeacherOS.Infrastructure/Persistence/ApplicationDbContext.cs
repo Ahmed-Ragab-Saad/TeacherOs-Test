@@ -20,6 +20,8 @@ internal sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext
     internal DbSet<Tenant> Tenants => Set<Tenant>();
     internal DbSet<Role> Roles => Set<Role>();
     internal DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    internal DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
+    internal DbSet<Email.EmailOutboxMessage> EmailOutboxMessages => Set<Email.EmailOutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

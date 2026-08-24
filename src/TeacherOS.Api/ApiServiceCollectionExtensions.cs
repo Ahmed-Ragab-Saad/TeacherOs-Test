@@ -52,6 +52,13 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<LoginHandler>();
         services.AddScoped<RegisterHandler>();
         services.AddScoped<GetCurrentSessionHandler>();
+        services.AddScoped<TeacherOS.Application.Invitations.CreateTenantInvitationHandler>();
+        services.AddScoped<TeacherOS.Application.Invitations.ListTenantInvitationsHandler>();
+        services.AddScoped<TeacherOS.Application.Invitations.RevokeTenantInvitationHandler>();
+        services.AddScoped<TeacherOS.Application.Invitations.InspectTenantInvitationHandler>();
+        services.AddScoped<TeacherOS.Application.Invitations.AcceptTenantInvitationHandler>();
+        services.AddScoped<TeacherOS.Application.Memberships.ListTenantMembersHandler>();
+        services.AddScoped<TeacherOS.Application.Memberships.UpdateTenantMembershipStatusHandler>();
 
         services.AddAuthentication(AuthenticationConstants.CookieScheme)
             .AddCookie(AuthenticationConstants.CookieScheme, options =>
@@ -120,6 +127,42 @@ public static class ApiServiceCollectionExtensions
 
             options.AddPolicy(
                 AuthenticationConstants.RegisterRateLimitPolicy,
+                httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 5,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+
+            options.AddPolicy(
+                AuthenticationConstants.InvitationCreateRateLimitPolicy,
+                httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 10,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+
+            options.AddPolicy(
+                AuthenticationConstants.InvitationInspectRateLimitPolicy,
+                httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 30,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+
+            options.AddPolicy(
+                AuthenticationConstants.InvitationAcceptRateLimitPolicy,
                 httpContext => RateLimitPartition.GetFixedWindowLimiter(
                     httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     _ => new FixedWindowRateLimiterOptions

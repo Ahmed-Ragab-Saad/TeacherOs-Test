@@ -22,16 +22,11 @@ namespace TeacherOS.IntegrationTests;
 
 public sealed class TenantInvitationPersistenceTests
 {
-    private const string DefaultConnectionString =
-        "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
-
-    private static readonly object DatabaseInitLock = new();
-    private static bool _databaseInitialized;
-
     [Fact]
     public async Task Real_invitation_lifecycle_and_security_invariants_persisted_correctly()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -159,7 +154,8 @@ public sealed class TenantInvitationPersistenceTests
     [Fact]
     public async Task Existing_user_can_accept_invitation_to_second_tenant()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -217,10 +213,8 @@ public sealed class TenantInvitationPersistenceTests
         Assert.All(memberships, m => Assert.Equal(TenantMembershipStatus.Active, m.Status));
     }
 
-    private static IServiceProvider CreateServiceProvider()
+    private static IServiceProvider CreateServiceProvider(string connectionString)
     {
-        var connectionString = ResolveConnectionString();
-
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new[]
             {
@@ -250,48 +244,7 @@ public sealed class TenantInvitationPersistenceTests
         services.AddScoped<ListTenantInvitationsHandler>();
         services.AddScoped<AcceptTenantInvitationHandler>();
 
-        var serviceProvider = services.BuildServiceProvider();
-        EnsureDatabaseMigrated(serviceProvider);
-
-        return serviceProvider;
-    }
-
-    private static string ResolveConnectionString()
-    {
-        var testEnvConn = Environment.GetEnvironmentVariable("TEACHEROS_TEST_DB_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(testEnvConn))
-        {
-            return testEnvConn;
-        }
-
-        var databaseEnvConn = Environment.GetEnvironmentVariable("Database__ConnectionString");
-        if (!string.IsNullOrWhiteSpace(databaseEnvConn))
-        {
-            return databaseEnvConn;
-        }
-
-        return DefaultConnectionString;
-    }
-
-    private static void EnsureDatabaseMigrated(IServiceProvider serviceProvider)
-    {
-        if (_databaseInitialized)
-        {
-            return;
-        }
-
-        lock (DatabaseInitLock)
-        {
-            if (_databaseInitialized)
-            {
-                return;
-            }
-
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
-            _databaseInitialized = true;
-        }
+        return services.BuildServiceProvider();
     }
 
     private sealed class TestCurrentUser : ICurrentUser

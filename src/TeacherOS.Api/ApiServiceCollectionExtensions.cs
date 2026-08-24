@@ -20,7 +20,7 @@ public static class ApiServiceCollectionExtensions
     public static IServiceCollection AddApiServices(this IServiceCollection services)
     {
         services.AddRouting(options => options.LowercaseUrls = true);
-        services.AddOpenApi();
+        services.AddOpenApi(TeacherOS.Api.OpenApi.TeacherOSOpenApiConfiguration.ConfigureOpenApi);
         services.AddHttpContextAccessor();
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails(options =>

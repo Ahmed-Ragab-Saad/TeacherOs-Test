@@ -12,4 +12,5 @@ public static class StudentManagementErrors
     public static Error GradeLevelNameExists { get; } = new("Students.GradeLevelNameExists", "A grade level with this name already exists.", ErrorType.Conflict);
     public static Error StudentCodeExists { get; } = new("Students.StudentCodeExists", "A student with this code already exists.", ErrorType.Conflict);
     public static Error NationalIdExists { get; } = new("Students.NationalIdExists", "A student with this national ID already exists.", ErrorType.Conflict);
+    public static Error StudentAlreadyInStatus { get; } = new("Students.StudentAlreadyInStatus", "The student is already in the requested status.", ErrorType.Conflict);
 }

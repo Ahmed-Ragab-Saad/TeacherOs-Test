@@ -27,6 +27,10 @@ internal sealed record StudentUpdateRequest(
     string? PhoneNumber,
     string? PhotoUrl);
 
+internal sealed record StudentBranchAssignmentRequest(Guid BranchId);
+
+internal sealed record StudentGradeLevelAssignmentRequest(Guid GradeLevelId);
+
 internal sealed record StudentResponse(
     Guid Id,
     string StudentCode,

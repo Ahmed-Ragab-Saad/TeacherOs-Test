@@ -36,29 +36,131 @@ internal static class StudentEndpoints
             .RequireAntiforgeryToken();
 
         group.MapGet("/{branchId:guid}", GetBranchAsync)
-            .Produces<BranchResponse>().ProducesProblem(StatusCodes.Status401Unauthorized)
+            .Produces<BranchResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        group.MapPatch("/{branchId:guid}", UpdateBranchAsync).Produces<BranchResponse>().ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).RequireAntiforgeryToken();
+        group.MapPatch("/{branchId:guid}", UpdateBranchAsync)
+            .Produces<BranchResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
     }
 
     private static void MapGradeLevelEndpoints(IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/tenants/{tenantId:guid}/grade-levels").WithTags("Grade Levels").RequireTenantContext();
-        group.MapGet("", ListGradeLevelsAsync).Produces<GradeLevelResponse[]>().ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden);
-        group.MapPost("", CreateGradeLevelAsync).Produces<GradeLevelResponse>(StatusCodes.Status201Created).ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status409Conflict).RequireAntiforgeryToken();
-        group.MapGet("/{gradeLevelId:guid}", GetGradeLevelAsync).Produces<GradeLevelResponse>().ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound);
-        group.MapPatch("/{gradeLevelId:guid}", UpdateGradeLevelAsync).Produces<GradeLevelResponse>().ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).RequireAntiforgeryToken();
+        var group = endpoints.MapGroup("/api/tenants/{tenantId:guid}/grade-levels")
+            .WithTags("Grade Levels")
+            .RequireTenantContext();
+
+        group.MapGet("", ListGradeLevelsAsync)
+            .Produces<GradeLevelResponse[]>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        group.MapPost("", CreateGradeLevelAsync)
+            .Produces<GradeLevelResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
+
+        group.MapGet("/{gradeLevelId:guid}", GetGradeLevelAsync)
+            .Produces<GradeLevelResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPatch("/{gradeLevelId:guid}", UpdateGradeLevelAsync)
+            .Produces<GradeLevelResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
     }
 
     private static void MapStudentRoutes(IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/tenants/{tenantId:guid}/students").WithTags("Students").RequireTenantContext();
-        group.MapGet("", ListStudentsAsync).Produces<StudentListResponse[]>().ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden);
-        group.MapPost("", CreateStudentAsync).Produces<StudentResponse>(StatusCodes.Status201Created).ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).RequireAntiforgeryToken();
-        group.MapGet("/{studentId:guid}", GetStudentAsync).Produces<StudentResponse>().ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound);
-        group.MapPatch("/{studentId:guid}", UpdateStudentAsync).Produces<StudentResponse>().ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status401Unauthorized).ProducesProblem(StatusCodes.Status403Forbidden).ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict).RequireAntiforgeryToken();
+        var group = endpoints.MapGroup("/api/tenants/{tenantId:guid}/students")
+            .WithTags("Students")
+            .RequireTenantContext();
+
+        group.MapGet("", ListStudentsAsync)
+            .Produces<StudentListResponse[]>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        group.MapPost("", CreateStudentAsync)
+            .Produces<StudentResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
+
+        group.MapGet("/{studentId:guid}", GetStudentAsync)
+            .Produces<StudentResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPatch("/{studentId:guid}", UpdateStudentAsync)
+            .Produces<StudentResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
+
+        group.MapPut("/{studentId:guid}/branch", AssignBranchAsync)
+            .Produces<StudentResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAntiforgeryToken();
+
+        group.MapPut("/{studentId:guid}/grade-level", AssignGradeLevelAsync)
+            .Produces<StudentResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAntiforgeryToken();
+
+        MapStudentStatusEndpoint(
+            group,
+            "/{studentId:guid}/suspensions/administrative",
+            SuspendAdministrativelyAsync);
+        MapStudentStatusEndpoint(
+            group,
+            "/{studentId:guid}/suspensions/non-payment",
+            SuspendForNonPaymentAsync);
+        MapStudentStatusEndpoint(group, "/{studentId:guid}/reactivation", ReactivateAsync);
+        MapStudentStatusEndpoint(group, "/{studentId:guid}/graduation", GraduateAsync);
+    }
+
+    private static void MapStudentStatusEndpoint(
+        RouteGroupBuilder group,
+        string pattern,
+        Delegate handler)
+    {
+        group.MapPost(pattern, handler)
+            .Produces<StudentResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
     }
 
     private static async Task<IResult> ListBranchesAsync(Guid tenantId, StudentManagementHandler handler, CancellationToken cancellationToken)
@@ -132,6 +234,90 @@ internal static class StudentEndpoints
     {
         var result = await handler.UpdateStudentAsync(tenantId, studentId, request.FullName, request.NationalId, request.BranchId, request.GradeLevelId, request.EnrollmentDate, request.PhoneNumber, request.PhotoUrl, cancellationToken);
         return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> AssignBranchAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentBranchAssignmentRequest request,
+        StudentManagementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.AssignBranchAsync(
+            tenantId,
+            studentId,
+            request.BranchId,
+            cancellationToken);
+
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> AssignGradeLevelAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentGradeLevelAssignmentRequest request,
+        StudentManagementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.AssignGradeLevelAsync(
+            tenantId,
+            studentId,
+            request.GradeLevelId,
+            cancellationToken);
+
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> SuspendAdministrativelyAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentManagementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.SuspendAdministrativelyAsync(tenantId, studentId, cancellationToken);
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> SuspendForNonPaymentAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentManagementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.SuspendForNonPaymentAsync(tenantId, studentId, cancellationToken);
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> ReactivateAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentManagementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.ReactivateAsync(tenantId, studentId, cancellationToken);
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> GraduateAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentManagementHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.GraduateAsync(tenantId, studentId, cancellationToken);
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Ok(ToResponse(result.Value));
     }
 
     private static BranchResponse ToResponse(Branch branch) => new(branch.Id, branch.Name);

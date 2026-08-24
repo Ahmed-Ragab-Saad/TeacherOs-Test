@@ -128,12 +128,100 @@ public sealed class StudentManagementHandler(
         return studentResult;
     }
 
+    public async Task<Result<Student>> AssignBranchAsync(
+        Guid tenantId,
+        Guid studentId,
+        Guid branchId,
+        CancellationToken cancellationToken = default)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return studentResult;
+        if (branchId == Guid.Empty) return Result<Student>.Failure(StudentManagementErrors.InvalidInput);
+        if (await store.GetBranchAsync(tenantId, branchId, cancellationToken) is null) return Result<Student>.Failure(StudentManagementErrors.BranchNotFound);
+
+        studentResult.Value.TransferToBranch(branchId);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return studentResult;
+    }
+
+    public async Task<Result<Student>> AssignGradeLevelAsync(
+        Guid tenantId,
+        Guid studentId,
+        Guid gradeLevelId,
+        CancellationToken cancellationToken = default)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return studentResult;
+        if (gradeLevelId == Guid.Empty) return Result<Student>.Failure(StudentManagementErrors.InvalidInput);
+        if (await store.GetGradeLevelAsync(tenantId, gradeLevelId, cancellationToken) is null) return Result<Student>.Failure(StudentManagementErrors.GradeLevelNotFound);
+
+        studentResult.Value.AssignToGradeLevel(gradeLevelId);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return studentResult;
+    }
+
+    public Task<Result<Student>> SuspendAdministrativelyAsync(
+        Guid tenantId,
+        Guid studentId,
+        CancellationToken cancellationToken = default) =>
+        UpdateStudentStatusAsync(tenantId, studentId, StudentStatus.SuspendedAdministrative, cancellationToken);
+
+    public Task<Result<Student>> SuspendForNonPaymentAsync(
+        Guid tenantId,
+        Guid studentId,
+        CancellationToken cancellationToken = default) =>
+        UpdateStudentStatusAsync(tenantId, studentId, StudentStatus.SuspendedNonPayment, cancellationToken);
+
+    public Task<Result<Student>> ReactivateAsync(
+        Guid tenantId,
+        Guid studentId,
+        CancellationToken cancellationToken = default) =>
+        UpdateStudentStatusAsync(tenantId, studentId, StudentStatus.Active, cancellationToken);
+
+    public Task<Result<Student>> GraduateAsync(
+        Guid tenantId,
+        Guid studentId,
+        CancellationToken cancellationToken = default) =>
+        UpdateStudentStatusAsync(tenantId, studentId, StudentStatus.Graduated, cancellationToken);
+
     private Error? ValidateAccess(Guid tenantId)
     {
         if (!currentUser.IsAuthenticated) return new Error("Authentication.Unauthorized", "Authentication is required.", ErrorType.Unauthorized);
         return !tenantContext.IsAvailable || tenantContext.TenantId != tenantId
             ? new Error("Tenancy.AccessDenied", "Access to the selected tenant is denied.", ErrorType.Forbidden)
             : null;
+    }
+
+    private async Task<Result<Student>> UpdateStudentStatusAsync(
+        Guid tenantId,
+        Guid studentId,
+        StudentStatus targetStatus,
+        CancellationToken cancellationToken)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return studentResult;
+        if (studentResult.Value.Status == targetStatus) return Result<Student>.Failure(StudentManagementErrors.StudentAlreadyInStatus);
+
+        switch (targetStatus)
+        {
+            case StudentStatus.Active:
+                studentResult.Value.Reactivate();
+                break;
+            case StudentStatus.SuspendedAdministrative:
+                studentResult.Value.SuspendAdministratively();
+                break;
+            case StudentStatus.SuspendedNonPayment:
+                studentResult.Value.SuspendForNonPayment();
+                break;
+            case StudentStatus.Graduated:
+                studentResult.Value.Graduate();
+                break;
+            default:
+                return Result<Student>.Failure(StudentManagementErrors.InvalidInput);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return studentResult;
     }
 
     private static bool IsValidStudentInput(string? studentCode, string? fullName, string? nationalId, Guid branchId, Guid gradeLevelId, string? phoneNumber, string? photoUrl)

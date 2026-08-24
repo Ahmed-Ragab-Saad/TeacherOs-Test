@@ -162,6 +162,12 @@ public sealed class OpenApiContractTests : IClassFixture<TeacherOSApiFactory>
     [InlineData("/api/tenants/{tenantId}/students", "post", true)]
     [InlineData("/api/tenants/{tenantId}/students/{studentId}", "get", false)]
     [InlineData("/api/tenants/{tenantId}/students/{studentId}", "patch", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}/branch", "put", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}/grade-level", "put", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}/suspensions/administrative", "post", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}/suspensions/non-payment", "post", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}/reactivation", "post", true)]
+    [InlineData("/api/tenants/{tenantId}/students/{studentId}/graduation", "post", true)]
     public async Task Student_module_endpoints_require_tenant_header_and_writes_require_antiforgery(
         string path,
         string method,

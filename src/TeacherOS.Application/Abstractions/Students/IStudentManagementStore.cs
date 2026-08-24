@@ -21,4 +21,13 @@ public interface IStudentManagementStore
     Task<bool> StudentCodeExistsAsync(Guid tenantId, string studentCode, Guid? excludingStudentId, CancellationToken cancellationToken = default);
     Task<bool> NationalIdExistsAsync(Guid tenantId, string nationalId, Guid? excludingStudentId, CancellationToken cancellationToken = default);
     void AddStudent(Student student);
+
+    Task<IReadOnlyList<Guardian>> ListGuardiansAsync(Guid tenantId, CancellationToken cancellationToken = default);
+    Task<Guardian?> GetGuardianAsync(Guid tenantId, Guid guardianId, CancellationToken cancellationToken = default);
+    void AddGuardian(Guardian guardian);
+
+    Task<IReadOnlyList<StudentGuardian>> ListStudentGuardiansAsync(Guid tenantId, Guid studentId, CancellationToken cancellationToken = default);
+    Task<StudentGuardian?> GetStudentGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, CancellationToken cancellationToken = default);
+    void AddStudentGuardian(StudentGuardian studentGuardian);
+    void RemoveStudentGuardian(StudentGuardian studentGuardian);
 }

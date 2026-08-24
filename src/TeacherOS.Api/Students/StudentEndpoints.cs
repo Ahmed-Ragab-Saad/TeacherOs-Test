@@ -12,6 +12,7 @@ internal static class StudentEndpoints
     {
         MapBranchEndpoints(endpoints);
         MapGradeLevelEndpoints(endpoints);
+        MapGuardianEndpoints(endpoints);
         MapStudentRoutes(endpoints);
         return endpoints;
     }
@@ -147,6 +148,69 @@ internal static class StudentEndpoints
             SuspendForNonPaymentAsync);
         MapStudentStatusEndpoint(group, "/{studentId:guid}/reactivation", ReactivateAsync);
         MapStudentStatusEndpoint(group, "/{studentId:guid}/graduation", GraduateAsync);
+
+        group.MapGet("/{studentId:guid}/guardians", ListStudentGuardiansAsync)
+            .Produces<StudentGuardianResponse[]>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{studentId:guid}/guardians", LinkGuardianAsync)
+            .Produces<StudentGuardianResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAntiforgeryToken();
+
+        group.MapPatch("/{studentId:guid}/guardians/{guardianId:guid}", UpdateStudentGuardianAsync)
+            .Produces<StudentGuardianResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAntiforgeryToken();
+
+        group.MapPost("/{studentId:guid}/guardians/{guardianId:guid}/unlink", UnlinkGuardianAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAntiforgeryToken();
+    }
+
+    private static void MapGuardianEndpoints(IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("/api/tenants/{tenantId:guid}/guardians")
+            .WithTags("Guardians")
+            .RequireTenantContext();
+
+        group.MapGet("", ListGuardiansAsync)
+            .Produces<GuardianResponse[]>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        group.MapPost("", CreateGuardianAsync)
+            .Produces<GuardianResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .RequireAntiforgeryToken();
+
+        group.MapGet("/{guardianId:guid}", GetGuardianAsync)
+            .Produces<GuardianResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPatch("/{guardianId:guid}", UpdateGuardianAsync)
+            .Produces<GuardianResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAntiforgeryToken();
     }
 
     private static void MapStudentStatusEndpoint(
@@ -320,7 +384,59 @@ internal static class StudentEndpoints
             : TypedResults.Ok(ToResponse(result.Value));
     }
 
+    private static async Task<IResult> ListGuardiansAsync(Guid tenantId, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.ListGuardiansAsync(tenantId, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Ok(result.Value.Select(ToResponse).ToArray());
+    }
+
+    private static async Task<IResult> GetGuardianAsync(Guid tenantId, Guid guardianId, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.GetGuardianAsync(tenantId, guardianId, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> CreateGuardianAsync(Guid tenantId, GuardianWriteRequest request, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.CreateGuardianAsync(tenantId, request.FullName, request.PhoneNumber, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Created($"/api/tenants/{tenantId}/guardians/{result.Value.Id}", ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> UpdateGuardianAsync(Guid tenantId, Guid guardianId, GuardianWriteRequest request, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.UpdateGuardianAsync(tenantId, guardianId, request.FullName, request.PhoneNumber, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> ListStudentGuardiansAsync(Guid tenantId, Guid studentId, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.ListStudentGuardiansAsync(tenantId, studentId, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Ok(result.Value.Select(ToResponse).ToArray());
+    }
+
+    private static async Task<IResult> LinkGuardianAsync(Guid tenantId, Guid studentId, StudentGuardianCreateRequest request, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.LinkGuardianAsync(tenantId, studentId, request.GuardianId, request.RelationshipType, request.IsPrimaryContact, cancellationToken);
+        return result.IsFailure
+            ? ApiProblemDetails.FromError(result.Error)
+            : TypedResults.Created($"/api/tenants/{tenantId}/students/{studentId}/guardians/{result.Value.GuardianId}", ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> UpdateStudentGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, StudentGuardianUpdateRequest request, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.UpdateStudentGuardianAsync(tenantId, studentId, guardianId, request.RelationshipType, request.IsPrimaryContact, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.Ok(ToResponse(result.Value));
+    }
+
+    private static async Task<IResult> UnlinkGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, StudentManagementHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.UnlinkGuardianAsync(tenantId, studentId, guardianId, cancellationToken);
+        return result.IsFailure ? ApiProblemDetails.FromError(result.Error) : TypedResults.NoContent();
+    }
+
     private static BranchResponse ToResponse(Branch branch) => new(branch.Id, branch.Name);
     private static GradeLevelResponse ToResponse(GradeLevel gradeLevel) => new(gradeLevel.Id, gradeLevel.Name, gradeLevel.SortOrder);
     private static StudentResponse ToResponse(Student student) => new(student.Id, student.StudentCode, student.FullName, student.NationalId, student.BranchId, student.GradeLevelId, student.Status, student.EnrollmentDate, student.PhoneNumber, student.PhotoUrl);
+    private static GuardianResponse ToResponse(Guardian guardian) => new(guardian.Id, guardian.FullName, guardian.PhoneNumber);
+    private static StudentGuardianResponse ToResponse(StudentGuardian studentGuardian) => new(studentGuardian.GuardianId, studentGuardian.RelationshipType, studentGuardian.IsPrimaryContact);
 }

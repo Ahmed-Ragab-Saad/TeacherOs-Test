@@ -184,6 +184,97 @@ public sealed class StudentManagementHandler(
         CancellationToken cancellationToken = default) =>
         UpdateStudentStatusAsync(tenantId, studentId, StudentStatus.Graduated, cancellationToken);
 
+    public async Task<Result<IReadOnlyList<Guardian>>> ListGuardiansAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var accessError = ValidateAccess(tenantId);
+        return accessError is null
+            ? Result<IReadOnlyList<Guardian>>.Success(await store.ListGuardiansAsync(tenantId, cancellationToken))
+            : Result<IReadOnlyList<Guardian>>.Failure(accessError);
+    }
+
+    public async Task<Result<Guardian>> GetGuardianAsync(Guid tenantId, Guid guardianId, CancellationToken cancellationToken = default)
+    {
+        var accessError = ValidateAccess(tenantId);
+        if (accessError is not null) return Result<Guardian>.Failure(accessError);
+
+        var guardian = await store.GetGuardianAsync(tenantId, guardianId, cancellationToken);
+        return guardian is null ? Result<Guardian>.Failure(StudentManagementErrors.GuardianNotFound) : Result<Guardian>.Success(guardian);
+    }
+
+    public async Task<Result<Guardian>> CreateGuardianAsync(Guid tenantId, string fullName, string phoneNumber, CancellationToken cancellationToken = default)
+    {
+        var accessError = ValidateAccess(tenantId);
+        if (accessError is not null) return Result<Guardian>.Failure(accessError);
+        if (!IsValidRequiredText(fullName, Guardian.MaxFullNameLength) || !IsValidRequiredText(phoneNumber, Guardian.MaxPhoneNumberLength))
+            return Result<Guardian>.Failure(StudentManagementErrors.InvalidInput);
+
+        var guardian = new Guardian(Guid.NewGuid(), tenantId, fullName, phoneNumber);
+        store.AddGuardian(guardian);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result<Guardian>.Success(guardian);
+    }
+
+    public async Task<Result<Guardian>> UpdateGuardianAsync(Guid tenantId, Guid guardianId, string fullName, string phoneNumber, CancellationToken cancellationToken = default)
+    {
+        var guardianResult = await GetGuardianAsync(tenantId, guardianId, cancellationToken);
+        if (guardianResult.IsFailure) return guardianResult;
+        if (!IsValidRequiredText(fullName, Guardian.MaxFullNameLength) || !IsValidRequiredText(phoneNumber, Guardian.MaxPhoneNumberLength))
+            return Result<Guardian>.Failure(StudentManagementErrors.InvalidInput);
+
+        guardianResult.Value.Update(fullName, phoneNumber);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return guardianResult;
+    }
+
+    public async Task<Result<IReadOnlyList<StudentGuardian>>> ListStudentGuardiansAsync(Guid tenantId, Guid studentId, CancellationToken cancellationToken = default)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return Result<IReadOnlyList<StudentGuardian>>.Failure(studentResult.Error);
+
+        return Result<IReadOnlyList<StudentGuardian>>.Success(await store.ListStudentGuardiansAsync(tenantId, studentId, cancellationToken));
+    }
+
+    public async Task<Result<StudentGuardian>> LinkGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, GuardianRelationshipType relationshipType, bool isPrimaryContact, CancellationToken cancellationToken = default)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return Result<StudentGuardian>.Failure(studentResult.Error);
+        if (guardianId == Guid.Empty || !Enum.IsDefined(relationshipType)) return Result<StudentGuardian>.Failure(StudentManagementErrors.InvalidInput);
+        if (await store.GetGuardianAsync(tenantId, guardianId, cancellationToken) is null) return Result<StudentGuardian>.Failure(StudentManagementErrors.GuardianNotFound);
+        if (await store.GetStudentGuardianAsync(tenantId, studentId, guardianId, cancellationToken) is not null) return Result<StudentGuardian>.Failure(StudentManagementErrors.StudentGuardianAlreadyLinked);
+
+        var link = new StudentGuardian(Guid.NewGuid(), tenantId, studentId, guardianId, relationshipType, isPrimaryContact);
+        store.AddStudentGuardian(link);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result<StudentGuardian>.Success(link);
+    }
+
+    public async Task<Result<StudentGuardian>> UpdateStudentGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, GuardianRelationshipType relationshipType, bool isPrimaryContact, CancellationToken cancellationToken = default)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return Result<StudentGuardian>.Failure(studentResult.Error);
+        if (!Enum.IsDefined(relationshipType)) return Result<StudentGuardian>.Failure(StudentManagementErrors.InvalidInput);
+
+        var link = await store.GetStudentGuardianAsync(tenantId, studentId, guardianId, cancellationToken);
+        if (link is null) return Result<StudentGuardian>.Failure(StudentManagementErrors.StudentGuardianNotFound);
+
+        link.Update(relationshipType, isPrimaryContact);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result<StudentGuardian>.Success(link);
+    }
+
+    public async Task<Result> UnlinkGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, CancellationToken cancellationToken = default)
+    {
+        var studentResult = await GetStudentAsync(tenantId, studentId, cancellationToken);
+        if (studentResult.IsFailure) return Result.Failure(studentResult.Error);
+
+        var link = await store.GetStudentGuardianAsync(tenantId, studentId, guardianId, cancellationToken);
+        if (link is null) return Result.Failure(StudentManagementErrors.StudentGuardianNotFound);
+
+        store.RemoveStudentGuardian(link);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
     private Error? ValidateAccess(Guid tenantId)
     {
         if (!currentUser.IsAuthenticated) return new Error("Authentication.Unauthorized", "Authentication is required.", ErrorType.Unauthorized);

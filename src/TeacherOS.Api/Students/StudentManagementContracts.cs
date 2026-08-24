@@ -42,3 +42,21 @@ internal sealed record StudentResponse(
     DateOnly EnrollmentDate,
     string? PhoneNumber,
     string? PhotoUrl);
+
+internal sealed record GuardianWriteRequest(string FullName, string PhoneNumber);
+
+internal sealed record GuardianResponse(Guid Id, string FullName, string PhoneNumber);
+
+internal sealed record StudentGuardianCreateRequest(
+    Guid GuardianId,
+    GuardianRelationshipType RelationshipType,
+    bool IsPrimaryContact);
+
+internal sealed record StudentGuardianUpdateRequest(
+    GuardianRelationshipType RelationshipType,
+    bool IsPrimaryContact);
+
+internal sealed record StudentGuardianResponse(
+    Guid GuardianId,
+    GuardianRelationshipType RelationshipType,
+    bool IsPrimaryContact);

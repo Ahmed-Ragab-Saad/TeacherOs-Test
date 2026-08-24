@@ -33,6 +33,12 @@ public sealed class StudentGuardian : Entity<Guid>, ITenantOwnedEntity
 
     public bool IsPrimaryContact { get; private set; }
 
+    public void Update(GuardianRelationshipType relationshipType, bool isPrimaryContact)
+    {
+        RelationshipType = ValidateRelationshipType(relationshipType);
+        IsPrimaryContact = isPrimaryContact;
+    }
+
     private static Guid ValidateId(Guid id)
     {
         if (id == Guid.Empty)

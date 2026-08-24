@@ -24,6 +24,12 @@ public sealed class Guardian : Entity<Guid>, ITenantOwnedEntity
 
     public string PhoneNumber { get; private set; }
 
+    public void Update(string fullName, string phoneNumber)
+    {
+        FullName = ValidateFullName(fullName);
+        PhoneNumber = ValidatePhoneNumber(phoneNumber);
+    }
+
     private static Guid ValidateId(Guid id)
     {
         if (id == Guid.Empty)

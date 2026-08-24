@@ -59,4 +59,40 @@ internal sealed class StudentManagementStore(ApplicationDbContext dbContext) : I
     }
 
     public void AddStudent(Student student) => dbContext.Students.Add(student);
+
+    public async Task<IReadOnlyList<Guardian>> ListGuardiansAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Guardians.AsNoTracking()
+            .Where(guardian => guardian.TenantId == tenantId)
+            .OrderBy(guardian => guardian.FullName)
+            .ThenBy(guardian => guardian.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<Guardian?> GetGuardianAsync(Guid tenantId, Guid guardianId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.Guardians.FirstOrDefaultAsync(guardian => guardian.TenantId == tenantId && guardian.Id == guardianId, cancellationToken);
+    }
+
+    public void AddGuardian(Guardian guardian) => dbContext.Guardians.Add(guardian);
+
+    public async Task<IReadOnlyList<StudentGuardian>> ListStudentGuardiansAsync(Guid tenantId, Guid studentId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.StudentGuardians.AsNoTracking()
+            .Where(link => link.TenantId == tenantId && link.StudentId == studentId)
+            .OrderByDescending(link => link.IsPrimaryContact)
+            .ThenBy(link => link.GuardianId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<StudentGuardian?> GetStudentGuardianAsync(Guid tenantId, Guid studentId, Guid guardianId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.StudentGuardians.FirstOrDefaultAsync(
+            link => link.TenantId == tenantId && link.StudentId == studentId && link.GuardianId == guardianId,
+            cancellationToken);
+    }
+
+    public void AddStudentGuardian(StudentGuardian studentGuardian) => dbContext.StudentGuardians.Add(studentGuardian);
+
+    public void RemoveStudentGuardian(StudentGuardian studentGuardian) => dbContext.StudentGuardians.Remove(studentGuardian);
 }

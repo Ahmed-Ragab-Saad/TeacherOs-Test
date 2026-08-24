@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System;
 using System.Linq.Expressions;
@@ -12,11 +13,12 @@ using TeacherOS.Infrastructure.Tenancy;
 namespace TeacherOS.Infrastructure.Persistence;
 
 internal sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantContext tenantContext)
-    : IdentityUserContext<ApplicationUser, Guid>(options)
+    : IdentityUserContext<ApplicationUser, Guid>(options), IDataProtectionKeyContext
 {
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     internal DbSet<Tenant> Tenants => Set<Tenant>();
     internal DbSet<Role> Roles => Set<Role>();
-
     internal DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

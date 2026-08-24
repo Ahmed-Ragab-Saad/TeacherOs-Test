@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,11 @@ public static class InfrastructureServiceCollectionExtensions
             })
             .AddSignInManager()
             .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        services
+            .AddDataProtection()
+            .SetApplicationName("TeacherOS")
+            .PersistKeysToDbContext<ApplicationDbContext>();
 
         services.AddScoped<IIdentityAuthenticator, IdentityAuthenticator>();
         services.AddScoped<IIdentityUserRegistrar, IdentityUserRegistrar>();

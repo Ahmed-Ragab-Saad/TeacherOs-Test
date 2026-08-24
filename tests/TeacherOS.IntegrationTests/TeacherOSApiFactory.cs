@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -43,6 +47,7 @@ public sealed class TeacherOSApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IIdentityUserRegistrar>();
             services.RemoveAll<ITenantOnboardingStore>();
             services.RemoveAll<IUnitOfWork>();
+            services.RemoveAll<IXmlRepository>();
 
             services.AddSingleton<IIdentityAuthenticator, TestIdentityAuthenticator>();
             services.AddSingleton<ICurrentSessionReader, TestCurrentSessionReader>();
@@ -51,7 +56,33 @@ public sealed class TeacherOSApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IIdentityUserRegistrar, TestIdentityUserRegistrar>();
             services.AddSingleton<ITenantOnboardingStore, TestTenantOnboardingStore>();
             services.AddSingleton<IUnitOfWork, TestUnitOfWork>();
+
+            services.Configure<Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions>(options =>
+            {
+                options.XmlRepository = new EphemeralXmlRepository();
+            });
         });
+    }
+
+    private sealed class EphemeralXmlRepository : IXmlRepository
+    {
+        private readonly List<XElement> _elements = [];
+
+        public IReadOnlyCollection<XElement> GetAllElements()
+        {
+            lock (_elements)
+            {
+                return _elements.ToList().AsReadOnly();
+            }
+        }
+
+        public void StoreElement(XElement element, string friendlyName)
+        {
+            lock (_elements)
+            {
+                _elements.Add(new XElement(element));
+            }
+        }
     }
 
     private sealed class TestIdentityUserRegistrar : IIdentityUserRegistrar

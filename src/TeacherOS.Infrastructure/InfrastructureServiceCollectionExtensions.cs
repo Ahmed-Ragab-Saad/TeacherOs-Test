@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,11 +7,17 @@ using Microsoft.Extensions.Options;
 using System;
 using TeacherOS.Application.Abstractions.Authentication;
 using TeacherOS.Application.Abstractions.Authorization;
+using TeacherOS.Application.Abstractions.Email;
+using TeacherOS.Application.Abstractions.Invitations;
+using TeacherOS.Application.Abstractions.Memberships;
+using TeacherOS.Application.Abstractions.Students;
 using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Infrastructure.Authorization;
 using TeacherOS.Infrastructure.Configuration;
+using TeacherOS.Infrastructure.Email;
 using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Persistence;
+using TeacherOS.Infrastructure.Students;
 using TeacherOS.Infrastructure.Tenancy;
 
 namespace TeacherOS.Infrastructure;
@@ -55,6 +62,17 @@ public static class InfrastructureServiceCollectionExtensions
             .AddSignInManager()
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
+        services
+            .AddDataProtection()
+            .SetApplicationName("TeacherOS")
+            .PersistKeysToDbContext<ApplicationDbContext>();
+
+        services
+            .AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName));
+
+        services.AddHttpClient<ITransactionalEmailSender, BrevoEmailSender>();
+
         services.AddScoped<IIdentityAuthenticator, IdentityAuthenticator>();
         services.AddScoped<IIdentityUserRegistrar, IdentityUserRegistrar>();
         services.AddScoped<ICurrentSessionReader, CurrentSessionReader>();
@@ -63,6 +81,14 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIdentityPrincipalFactory, IdentityPrincipalFactory>();
         services.AddScoped<IPermissionResolver, PermissionResolver>();
         services.AddScoped<ITenantContext, TenantContext>();
+
+        services.AddScoped<IInvitationTokenService, InvitationTokenService>();
+        services.AddScoped<ITenantInvitationStore, TenantInvitationStore>();
+        services.AddScoped<ITenantMembershipManagementStore, TenantMembershipManagementStore>();
+        services.AddScoped<IStudentReader, StudentReader>();
+        services.AddScoped<IStudentManagementStore, StudentManagementStore>();
+        services.AddScoped<IEmailOutboxProcessor, EmailOutboxProcessor>();
+        services.AddHostedService<Email.EmailOutboxBackgroundService>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);

@@ -22,16 +22,11 @@ namespace TeacherOS.IntegrationTests;
 
 public sealed class OnboardingPersistenceTests
 {
-    private const string DefaultConnectionString =
-        "Server=localhost\\MSSQLSERVER01;Database=TeacherOS;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=true;";
-
-    private static readonly object DatabaseInitLock = new();
-    private static bool _databaseInitialized;
-
     [Fact]
     public async Task Real_onboarding_persists_user_tenant_owner_role_and_membership_atomically()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -99,7 +94,8 @@ public sealed class OnboardingPersistenceTests
     [Fact]
     public async Task Duplicate_email_does_not_create_another_tenant_or_partial_state()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -136,7 +132,8 @@ public sealed class OnboardingPersistenceTests
     [Fact]
     public async Task Simulated_persistence_failure_rolls_back_entire_transaction()
     {
-        var services = CreateServiceProvider();
+        await using var db = await SqlTestDatabase.CreateAsync();
+        var services = CreateServiceProvider(db.ConnectionString);
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -173,10 +170,8 @@ public sealed class OnboardingPersistenceTests
         Assert.Equal(0, rolesCount);
     }
 
-    private static IServiceProvider CreateServiceProvider()
+    private static IServiceProvider CreateServiceProvider(string connectionString)
     {
-        var connectionString = ResolveConnectionString();
-
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new[]
             {
@@ -190,60 +185,7 @@ public sealed class OnboardingPersistenceTests
         services.AddInfrastructure(configuration);
         services.AddScoped<RegisterHandler>();
 
-        var serviceProvider = services.BuildServiceProvider();
-        EnsureDatabaseMigrated(serviceProvider);
-
-        return serviceProvider;
-    }
-
-    private static string ResolveConnectionString()
-    {
-        // 1. Explicit CI/Test environment variable
-        var testEnvConn = Environment.GetEnvironmentVariable("TEACHEROS_TEST_DB_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(testEnvConn))
-        {
-            return testEnvConn;
-        }
-
-        var databaseEnvConn = Environment.GetEnvironmentVariable("Database__ConnectionString");
-        if (!string.IsNullOrWhiteSpace(databaseEnvConn))
-        {
-            return databaseEnvConn;
-        }
-
-        // 2. User Secrets (for local developer workstation)
-        var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddUserSecrets<TeacherOSApiFactory>(optional: true);
-        var config = configBuilder.Build();
-        var userSecretsConn = config.GetSection("Database:ConnectionString").Value;
-        if (!string.IsNullOrWhiteSpace(userSecretsConn))
-        {
-            return userSecretsConn;
-        }
-
-        // 3. Fallback default
-        return DefaultConnectionString;
-    }
-
-    private static void EnsureDatabaseMigrated(IServiceProvider serviceProvider)
-    {
-        if (_databaseInitialized)
-        {
-            return;
-        }
-
-        lock (DatabaseInitLock)
-        {
-            if (_databaseInitialized)
-            {
-                return;
-            }
-
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
-            _databaseInitialized = true;
-        }
+        return services.BuildServiceProvider();
     }
 
     private sealed class FailingUnitOfWork(IUnitOfWork inner) : IUnitOfWork

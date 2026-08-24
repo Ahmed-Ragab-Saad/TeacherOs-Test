@@ -22,6 +22,25 @@ namespace TeacherOS.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -120,6 +139,228 @@ namespace TeacherOS.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TeacherOS.Domain.Students.Branch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Branches_TenantId_Name");
+
+                    b.ToTable("Branches", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Branches_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_Branches_Name_NotBlank", "LEN(LTRIM(RTRIM([Name]))) > 0");
+
+                            t.HasCheckConstraint("CK_Branches_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        });
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.GradeLevel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("UX_GradeLevels_TenantId_Name");
+
+                    b.ToTable("GradeLevels", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_GradeLevels_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_GradeLevels_Name_NotBlank", "LEN(LTRIM(RTRIM([Name]))) > 0");
+
+                            t.HasCheckConstraint("CK_GradeLevels_SortOrder_NonNegative", "[SortOrder] >= 0");
+
+                            t.HasCheckConstraint("CK_GradeLevels_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        });
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.Guardian", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Guardians", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Guardians_FullName_NotBlank", "LEN(LTRIM(RTRIM([FullName]))) > 0");
+
+                            t.HasCheckConstraint("CK_Guardians_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_Guardians_PhoneNumber_NotBlank", "LEN(LTRIM(RTRIM([PhoneNumber]))) > 0");
+
+                            t.HasCheckConstraint("CK_Guardians_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        });
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.Student", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EnrollmentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("GradeLevelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("NationalId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("GradeLevelId");
+
+                    b.HasIndex("TenantId", "BranchId");
+
+                    b.HasIndex("TenantId", "GradeLevelId");
+
+                    b.HasIndex("TenantId", "NationalId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Students_TenantId_NationalId");
+
+                    b.HasIndex("TenantId", "StudentCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Students_TenantId_StudentCode");
+
+                    b.ToTable("Students", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Students_BranchId_NotEmpty", "[BranchId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_Students_FullName_NotBlank", "LEN(LTRIM(RTRIM([FullName]))) > 0");
+
+                            t.HasCheckConstraint("CK_Students_GradeLevelId_NotEmpty", "[GradeLevelId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_Students_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_Students_NationalId_NotBlank", "LEN(LTRIM(RTRIM([NationalId]))) > 0");
+
+                            t.HasCheckConstraint("CK_Students_Status_Valid", "[Status] IN (1, 2, 3, 4)");
+
+                            t.HasCheckConstraint("CK_Students_StudentCode_NotBlank", "LEN(LTRIM(RTRIM([StudentCode]))) > 0");
+
+                            t.HasCheckConstraint("CK_Students_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        });
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.StudentGuardian", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GuardianId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPrimaryContact")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RelationshipType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GuardianId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("StudentId", "GuardianId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StudentGuardians_StudentId_GuardianId");
+
+                    b.ToTable("StudentGuardians", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StudentGuardians_GuardianId_NotEmpty", "[GuardianId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_StudentGuardians_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_StudentGuardians_RelationshipType_Valid", "[RelationshipType] IN (1, 2, 3, 4)");
+
+                            t.HasCheckConstraint("CK_StudentGuardians_StudentId_NotEmpty", "[StudentId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_StudentGuardians_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        });
+                });
+
             modelBuilder.Entity("TeacherOS.Domain.Tenancy.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -142,6 +383,78 @@ namespace TeacherOS.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_Tenants_Name_NotBlank", "LEN(LTRIM(RTRIM([Name]))) > 0");
 
                             t.HasCheckConstraint("CK_Tenants_Status_Valid", "[Status] IN (1, 2, 3, 4, 5)");
+                        });
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Tenancy.TenantInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("AcceptedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TenantInvitations_TokenHash");
+
+                    b.HasIndex("TenantId", "NormalizedEmail")
+                        .HasDatabaseName("IX_TenantInvitations_TenantId_NormalizedEmail");
+
+                    b.ToTable("TenantInvitations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TenantInvitations_CreatedByUserId_NotEmpty", "[CreatedByUserId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_TenantInvitations_Email_NotBlank", "LEN(LTRIM(RTRIM([Email]))) > 0");
+
+                            t.HasCheckConstraint("CK_TenantInvitations_Expires_After_Created", "[ExpiresAtUtc] > [CreatedAtUtc]");
+
+                            t.HasCheckConstraint("CK_TenantInvitations_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_TenantInvitations_NormalizedEmail_NotBlank", "LEN(LTRIM(RTRIM([NormalizedEmail]))) > 0");
+
+                            t.HasCheckConstraint("CK_TenantInvitations_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_TenantInvitations_TokenHash_NotBlank", "LEN(LTRIM(RTRIM([TokenHash]))) > 0");
                         });
                 });
 
@@ -181,6 +494,80 @@ namespace TeacherOS.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_TenantMemberships_TenantId_NotEmpty", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
 
                             t.HasCheckConstraint("CK_TenantMemberships_UserId_NotEmpty", "[UserId] <> '00000000-0000-0000-0000-000000000000'");
+                        });
+                });
+
+            modelBuilder.Entity("TeacherOS.Infrastructure.Email.EmailOutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("LastAttemptAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("LastErrorDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("NextAttemptAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ProtectedInvitationToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("SentAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantInvitationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantInvitationId")
+                        .HasDatabaseName("IX_EmailOutboxMessages_TenantInvitationId");
+
+                    b.HasIndex("Status", "NextAttemptAtUtc")
+                        .HasDatabaseName("IX_EmailOutboxMessages_Status_NextAttemptAtUtc");
+
+                    b.ToTable("EmailOutboxMessages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EmailOutboxMessages_Id_NotEmpty", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                            t.HasCheckConstraint("CK_EmailOutboxMessages_RecipientEmail_NotBlank", "LEN(LTRIM(RTRIM([RecipientEmail]))) > 0");
+
+                            t.HasCheckConstraint("CK_EmailOutboxMessages_Status_Valid", "[Status] IN (1, 2, 3, 4)");
+
+                            t.HasCheckConstraint("CK_EmailOutboxMessages_TenantInvitationId_NotEmpty", "[TenantInvitationId] <> '00000000-0000-0000-0000-000000000000'");
                         });
                 });
 
@@ -288,6 +675,95 @@ namespace TeacherOS.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TeacherOS.Domain.Students.Branch", b =>
+                {
+                    b.HasOne("TeacherOS.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.GradeLevel", b =>
+                {
+                    b.HasOne("TeacherOS.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.Guardian", b =>
+                {
+                    b.HasOne("TeacherOS.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.Student", b =>
+                {
+                    b.HasOne("TeacherOS.Domain.Students.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeacherOS.Domain.Students.GradeLevel", null)
+                        .WithMany()
+                        .HasForeignKey("GradeLevelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeacherOS.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Students.StudentGuardian", b =>
+                {
+                    b.HasOne("TeacherOS.Domain.Students.Guardian", null)
+                        .WithMany()
+                        .HasForeignKey("GuardianId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeacherOS.Domain.Students.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeacherOS.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeacherOS.Domain.Tenancy.TenantInvitation", b =>
+                {
+                    b.HasOne("TeacherOS.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeacherOS.Domain.Authorization.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TeacherOS.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TeacherOS.Domain.Tenancy.TenantMembership", b =>
                 {
                     b.HasOne("TeacherOS.Domain.Authorization.Role", null)
@@ -305,6 +781,15 @@ namespace TeacherOS.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeacherOS.Infrastructure.Email.EmailOutboxMessage", b =>
+                {
+                    b.HasOne("TeacherOS.Domain.Tenancy.TenantInvitation", null)
+                        .WithMany()
+                        .HasForeignKey("TenantInvitationId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

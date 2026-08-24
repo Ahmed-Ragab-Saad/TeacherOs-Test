@@ -47,7 +47,7 @@ jobs:
           TEACHEROS_TEST_DB_CONNECTION_STRING: "Server=127.0.0.1,1433;Database=TeacherOS_CI;User Id=sa;Password=YourStrong@Passw0rd_CI_2026!;TrustServerCertificate=true;Encrypt=true;"
         run: dotnet test TeacherOS.slnx --configuration Release --no-build
 
-  deploy_production:
+  release_production:
     needs: validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
@@ -64,6 +64,26 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+
+      - name: Restore EF Core CLI tools
+        shell: pwsh
+        run: dotnet tool restore
+
+      - name: Restore packages
+        run: dotnet restore TeacherOS.slnx
+
+      # Production migrations must follow backward-compatible expand/contract practices
+      # so existing application instances remain operational while schema changes are applied.
+      - name: Apply EF Core migrations
+        shell: pwsh
+        env:
+          PRODUCTION_DB_CONNECTION_STRING: ${{ secrets.PRODUCTION_DB_CONNECTION_STRING }}
+        run: |
+          dotnet ef database update `
+            --project src/TeacherOS.Infrastructure `
+            --startup-project src/TeacherOS.Api `
+            --context ApplicationDbContext `
+            --connection $env:PRODUCTION_DB_CONNECTION_STRING
 
       - name: Publish API
         shell: pwsh

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System;
 using System.Linq.Expressions;
@@ -5,6 +6,7 @@ using System.Reflection;
 using TeacherOS.Application.Abstractions.Tenancy;
 using TeacherOS.Domain.Authorization;
 using TeacherOS.Domain.Common;
+using TeacherOS.Domain.Students;
 using TeacherOS.Domain.Tenancy;
 using TeacherOS.Infrastructure.Identity;
 using TeacherOS.Infrastructure.Tenancy;
@@ -12,12 +14,20 @@ using TeacherOS.Infrastructure.Tenancy;
 namespace TeacherOS.Infrastructure.Persistence;
 
 internal sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantContext tenantContext)
-    : IdentityUserContext<ApplicationUser, Guid>(options)
+    : IdentityUserContext<ApplicationUser, Guid>(options), IDataProtectionKeyContext
 {
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     internal DbSet<Tenant> Tenants => Set<Tenant>();
     internal DbSet<Role> Roles => Set<Role>();
-
     internal DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    internal DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
+    internal DbSet<Email.EmailOutboxMessage> EmailOutboxMessages => Set<Email.EmailOutboxMessage>();
+    internal DbSet<Branch> Branches => Set<Branch>();
+    internal DbSet<GradeLevel> GradeLevels => Set<GradeLevel>();
+    internal DbSet<Guardian> Guardians => Set<Guardian>();
+    internal DbSet<Student> Students => Set<Student>();
+    internal DbSet<StudentGuardian> StudentGuardians => Set<StudentGuardian>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

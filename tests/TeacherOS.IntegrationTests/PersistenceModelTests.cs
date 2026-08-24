@@ -105,6 +105,33 @@ public sealed class PersistenceModelTests
         Assert.Equal(DeleteBehavior.Restrict, userForeignKey.DeleteBehavior);
     }
 
+    [Fact]
+    public void Data_protection_keys_entity_is_registered_in_the_model()
+    {
+        using var dbContext = CreateDbContext();
+        var keyEntity = dbContext.Model.FindEntityType(typeof(Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey));
+        Assert.NotNull(keyEntity);
+        Assert.Equal("DataProtectionKeys", keyEntity.GetTableName());
+    }
+
+    [Fact]
+    public void Infrastructure_registers_data_protection_services()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[]
+            {
+                new KeyValuePair<string, string?>(
+                    "Database:ConnectionString",
+                    "Server=localhost;Database=TeacherOSModelTests;Integrated Security=true;Encrypt=false"),
+            })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddInfrastructure(configuration);
+
+        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(Microsoft.AspNetCore.DataProtection.IDataProtectionProvider));
+    }
+
     private static ApplicationDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

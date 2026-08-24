@@ -12,6 +12,7 @@ public static class Permission
     public const string SessionClose = "session.close";
     public const string ShiftClose = "shift.close";
     public const string ContentPublish = "content.publish";
+    public const string MembersManage = "members.manage";
 
     public static readonly IReadOnlyCollection<string> All =
     [
@@ -21,5 +22,6 @@ public static class Permission
         SessionClose,
         ShiftClose,
         ContentPublish,
+        MembersManage,
     ];
 }
